@@ -66,7 +66,7 @@ ecoreg_layer  = sd + "Terrestrial_Ecoregions/Terrestrial_Ecoregions.shp"
 bio04_layer   = sd + "WorldClim/Bio/wc2.1_2.5m_bio_4.tif"
 bio15_layer   = sd + "WorldClim/Bio/wc2.1_2.5m_bio_15.tif"
 ppt_folder    = sd + "WorldClim/wc2.1_30s_prec/"
-tmax_folder   = sd + "wc2.1_30s_tmax" 
+tmax_folder   = sd + "WorldClim/wc2.1_30s_tmax/" 
 
 cec_layer     = 'netcdf:' + sd + "T_CEC_CLAY.nc4" + ':T_CEC_CLAY'
 cec_layer     = sd + "T_CEC_CLAY.nc4"
