@@ -19,7 +19,7 @@
 ###############################################################################
 
 
-def Get_PPT(Latitude, Longitude, PPT_Folder):
+def Features_Get_AnnualPPT(Latitude, Longitude, PPT_Folder):
     
   ## Pacakges
   import glob

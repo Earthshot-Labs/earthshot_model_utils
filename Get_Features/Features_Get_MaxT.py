@@ -50,8 +50,8 @@ def Get_MaxT(Latitude, Longitude, MaxT_Folder):
       output[colname] = vals
     
     count = count + 1
-
- Annual_Max = output.iloc[:,2:14].max(axis = 1)
- output["Annual_MaxT"] = Annual_Max
+  
+  Annual_Max = output.iloc[:,2:14].max(axis = 1)
+  output["Annual_MaxT"] = Annual_Max
  
- return output
+  return output
