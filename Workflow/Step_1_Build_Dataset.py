@@ -21,26 +21,26 @@ import os
 from zipfile import ZipFile
 from datetime import date
 
-## Spatial
-#import fiona
-import rasterio
-from rasterio.mask import mask
-#from rasterstats import zonal_stats
-import geopandas as gpd
-gpd.io.file.fiona.drvsupport.supported_drivers['KML'] = 'rw'
-#import xarray
-#import rioxarray
-
-## Plotting 
-import matplotlib.pyplot as plt
-import matplotlib as mpl
-import matplotlib.lines as lines
-import seaborn as sns
-
-## Stats/Math
-import statsmodels.api as sm
-import pandas as pd
-import numpy as np
+# ## Spatial
+# #import fiona
+# import rasterio
+# from rasterio.mask import mask
+# #from rasterstats import zonal_stats
+# import geopandas as gpd
+# gpd.io.file.fiona.drvsupport.supported_drivers['KML'] = 'rw'
+# #import xarray
+# #import rioxarray
+# 
+# ## Plotting 
+# import matplotlib.pyplot as plt
+# import matplotlib as mpl
+# import matplotlib.lines as lines
+# import seaborn as sns
+# 
+# ## Stats/Math
+# import statsmodels.api as sm
+# import pandas as pd
+# import numpy as np
 
 ## Get todays date 
 today = date.today()
