@@ -19,7 +19,7 @@
 ###############################################################################
 
 
-def Features_Get_AnnualPPT(Latitude, Longitude, PPT_Folder):
+def Get_AnnualPPT(Latitude, Longitude, PPT_Folder):
     
   ## Pacakges
   import glob
@@ -33,6 +33,7 @@ def Features_Get_AnnualPPT(Latitude, Longitude, PPT_Folder):
   count = 1
   for f in pptfiles:
     
+    print(f)
     if count == 1:
       rast_ini      = rasterio.open(f)
       output_raster = rast_ini.read(1)
@@ -44,18 +45,18 @@ def Features_Get_AnnualPPT(Latitude, Longitude, PPT_Folder):
       
     count = count + 1
     
-  ## Extract Precipitation values by lat/lon
-  with rasterio.open(f) as dataset:
-  
-    ## Get Data located at those coordinates 
-    x,y = Longitude, Latitude
-    row,col = dataset.index(x,y)
-    vals = output_raster[row,col]
+    ## Extract Precipitation values by lat/lon
+    with rasterio.open(f) as dataset:
     
-    ## Create a pandas dataframe 
-    output              = pd.DataFrame(vals, columns = ["Annual_PPT_mm"])
-    output["Latitude"]  = Latitude
-    output["Longitude"] = Longitude
+      ## Get Data located at those coordinates 
+      x,y = Longitude, Latitude
+      row,col = dataset.index(x,y)
+      vals = output_raster[row,col]
+      
+      ## Create a pandas dataframe 
+      output              = pd.DataFrame(vals, columns = ["Annual_PPT_mm"])
+      output["Latitude"]  = Latitude
+      output["Longitude"] = Longitude
     
   return output
   

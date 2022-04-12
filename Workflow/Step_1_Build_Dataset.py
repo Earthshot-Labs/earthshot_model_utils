@@ -25,10 +25,11 @@ mu = "/Users/meghs/Dropbox/Tropical_Forests_Data_Discovery/Code/model_utilities"
 
 ## Dropbox directory = working directory
 wd = "/Users/meghs/Google Drive/My Drive/Science/model_utilities_data/"
+swd = "/Users/meghs/Dropbox/Tropical_Forests_Data_Discovery/"
 
 ## Data and figure folders
 dd = wd + "AGB_Data/"
-sd = wd + 'Spatial_Data/'
+sd = swd + 'Spatial_Data/'
 
 ##---------------------------------------------------------------------------##
 ## MODULES
@@ -42,7 +43,7 @@ from zipfile import ZipFile
 from datetime import date
 
 ## Model Builders
-from Get_Features import *
+from Get_Features import * 
 from Organize_Data import*
 
 ## Get todays date 
@@ -79,7 +80,7 @@ lon = df['Longitude']
 ## Step 2: Call Features from spatial data
 
   ## Step 2a. Annual Precipitation
-  ppt = Features_Get_AnnualPPT.Features_Get_AnnualPPT(Latitude = lat, Longitude = lon, PPT_Folder = ppt_folder)
+  ppt = Features_Get_AnnualPPT.Get_AnnualPPT(Latitude = lat, Longitude = lon, PPT_Folder = ppt_folder)
 
 
 
