@@ -20,9 +20,6 @@
 ## USER INPUT [Data Paths]
 ##---------------------------------------------------------------------------##
 
-## Model Utilities
-mu = "/Users/meghs/Dropbox/Tropical_Forests_Data_Discovery/Code/model_utilities"
-
 ## Dropbox directory = working directory
 wd = "/Users/meghs/Google Drive/My Drive/Science/model_utilities_data/"
 swd = "/Users/meghs/Dropbox/Tropical_Forests_Data_Discovery/"
@@ -36,15 +33,13 @@ sd = swd + 'Spatial_Data/'
 ##---------------------------------------------------------------------------##
 
 ## General
-import sys; sys.path.append(mu)
 import os
 import glob
 from zipfile import ZipFile
 from datetime import date
-
-## Model Builders
-from Get_Features import * 
-from Organize_Data import*
+import modelUtilities 
+from modelUtilities import GetFeatures as gf
+from modelUtilities import SetupData
 
 ## Get todays date 
 today = date.today()
@@ -70,7 +65,7 @@ cec_layer     = sd + "T_CEC_CLAY.nc4"
 ##---------------------------------------------------------------------------##
 
 ## Step 1. Format Poorter Data to pandas 
-df = Setup_Poorter2016_Data.Format_Poorter(poorter)
+df = SetupData.Format_Poorter(poorter)
 
 ## Step 2. Get List of Location Information
 lat = df['Latitude']
@@ -80,7 +75,7 @@ lon = df['Longitude']
 ## Step 2: Call Features from spatial data
 
   ## Step 2a. Annual Precipitation
-  ppt = Features_Get_AnnualPPT.Get_AnnualPPT(Latitude = lat, Longitude = lon, PPT_Folder = ppt_folder)
+  ppt = gf.Get_AnnualPPT(Latitude = lat, Longitude = lon, PPT_Folder = ppt_folder)
 
 
 
