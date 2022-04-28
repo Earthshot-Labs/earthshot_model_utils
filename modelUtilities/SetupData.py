@@ -63,6 +63,11 @@ def Format_Poorter(file_location):
   df = df.rename(columns={'AGB (Mg/ha)':'AGB_Mg_ha'})
   df.sort_values(by=['Age'])
   
+  #---------------------------------------#
+  ## Reset row indexes from 0:nrow
+  #---------------------------------------#
+  df = df.reset_index(drop = True)
+  
   return df
 
 

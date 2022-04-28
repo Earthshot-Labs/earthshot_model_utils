@@ -93,14 +93,11 @@ Location_Info = Location_Info.reset_index(drop = True)
   ## Step 2f. Soil cation exchange capacity - indicator of soil fertility
   cec = gf.Get_SoilCEC(Location_DF = Location_Info, SoilCEC_Location = cec_layer)
 
-## Merge with all agb data
-final_df = df.merge(cec)
-
 
 ## Save to CSV File with data indicating versioning
 ## NB: CEC now has all the data together 
 out_filename = dd + "AGB_Data_" + today.strftime("%m.%d.%Y") + ".csv"
-final_df.to_csv(out_filename, index = False)
+cec.to_csv(out_filename, index = False)
 
 
 

@@ -11,11 +11,17 @@
 ###############################################################################
 
 
-def Get_AnnualPPT(Latitude, Longitude, PPT_Folder):
+def Get_AnnualPPT(Location_DF, PPT_Folder):
     
   ## Pacakges
   import glob
   import rasterio
+  import pandas as pd
+  
+  ## Get Location Values 
+  Site = Location_DF["Chronosequence"]
+  Latitude = Location_DF["Latitude"]
+  Longitude = Location_DF["Longitude"]
   
   ## Get list of all precip files in the folder
   pptfiles = glob.glob(PPT_Folder + "*.tif")
@@ -25,7 +31,7 @@ def Get_AnnualPPT(Latitude, Longitude, PPT_Folder):
   count = 1
   for f in pptfiles:
     
-    print(f)
+    #print(f)
     if count == 1:
       rast_ini      = rasterio.open(f)
       output_raster = rast_ini.read(1)
@@ -46,14 +52,13 @@ def Get_AnnualPPT(Latitude, Longitude, PPT_Folder):
       vals = output_raster[row,col]
       
       ## Create a pandas dataframe 
-      output              = pd.DataFrame(vals, columns = ["Annual_PPT_mm"])
-      output["Latitude"]  = Latitude
-      output["Longitude"] = Longitude
-    
+      output = Location_DF
+      output["Annual_PPT_mm"] = vals
+
   return output
   
 
-def Get_BioClim(Latitude, Longitude, Bio_Location, BioName):
+def Get_BioClim(Location_DF, Bio_Location, BioName):
   
   ## Spatial
   import rasterio 
@@ -61,6 +66,11 @@ def Get_BioClim(Latitude, Longitude, Bio_Location, BioName):
   ## Matrix Manipulation
   import pandas as pd
   import numpy as np
+  
+  ## Get Location Values 
+  Site = Location_DF["Chronosequence"]
+  Latitude = Location_DF["Latitude"]
+  Longitude = Location_DF["Longitude"]
   
   with rasterio.open(Bio_Location) as dataset:
 
@@ -70,14 +80,13 @@ def Get_BioClim(Latitude, Longitude, Bio_Location, BioName):
     vals = dataset.read(1)[row,col]
     
     ## Create a pandas dataframe 
-    output              = pd.DataFrame(vals, columns = [BioName])
-    output["Latitude"]  = Latitude
-    output["Longitude"] = Longitude
-    
+    output = Location_DF
+    output[BioName] = vals
+
   return output
 
 
-def Get_CWD(Latitude, Longitude, CWD_Location):
+def Get_CWD(Location_DF, CWD_Location):
   
   ## Spatial
   import rasterio 
@@ -85,6 +94,11 @@ def Get_CWD(Latitude, Longitude, CWD_Location):
   ## Matrix Manipulation
   import pandas as pd
   import numpy as np
+  
+  ## Get Location Values 
+  Site = Location_DF["Chronosequence"]
+  Latitude = Location_DF["Latitude"]
+  Longitude = Location_DF["Longitude"]
   
   with rasterio.open(CWD_Location) as dataset:
 
@@ -94,17 +108,21 @@ def Get_CWD(Latitude, Longitude, CWD_Location):
     vals = dataset.read(1)[row,col]
     
     ## Create a pandas dataframe 
-    output              = pd.DataFrame(vals, columns = ["CWD"])
-    output["Latitude"]  = Latitude
-    output["Longitude"] = Longitude
+    output = Location_DF
+    output["CWD"] = vals
     
   return output
 
 
-def Get_Biome(Latitude, Longitude, Bio_Location, BioName):
+def Get_Biome(Location_DF, Bio_Location):
   
   ## Get packages
   from geopandas import gpd
+  
+  ## Get Location Values 
+  Site = Location_DF["Chronosequence"]
+  Latitude = Location_DF["Latitude"]
+  Longitude = Location_DF["Longitude"]
   
   ## Set up output dataframe 
   output              = pd.DataFrame(Latitude, columns = ["Latitude"])
@@ -119,12 +137,18 @@ def Get_Biome(Latitude, Longitude, Bio_Location, BioName):
   gpd.sjoin(eco, gdf)
 
 
-def Get_MaxT(Latitude, Longitude, MaxT_Folder):
+def Get_MaxT(Location_DF, MaxT_Folder):
     
   ## Pacakges
   import glob
   import calendar
   import rasterio
+  import pandas as pd
+  
+  ## Get Location Values 
+  Site = Location_DF["Chronosequence"]
+  Latitude = Location_DF["Latitude"]
+  Longitude = Location_DF["Longitude"]
   
   ## Get list of all precip files in the folder
   tmaxfiles = glob.glob(MaxT_Folder + "*.tif")
@@ -132,8 +156,7 @@ def Get_MaxT(Latitude, Longitude, MaxT_Folder):
   ## Loop over all the max temp files and find the max temp value
   ## for each location 
   ## Set up output dataframe 
-  output              = pd.DataFrame(Latitude, columns = ["Latitude"])
-  output["Longitude"] = Longitude
+  output              = Location_DF
   
   count = 1
   for f in tmaxfiles:
@@ -157,7 +180,7 @@ def Get_MaxT(Latitude, Longitude, MaxT_Folder):
   return output
 
 
-def Get_SoilCEC(Latitude, Longitude, SoilCEC_Location):
+def Get_SoilCEC(Location_DF, SoilCEC_Location):
   
   ## Spatial
   import netCDF4 as nc
@@ -166,6 +189,11 @@ def Get_SoilCEC(Latitude, Longitude, SoilCEC_Location):
   import pandas as pd
   import numpy as np
   
+  ## Get Location Values 
+  Site = Location_DF["Chronosequence"]
+  Latitude = Location_DF["Latitude"]
+  Longitude = Location_DF["Longitude"]
+  
   ## Open NetCDDF and print information
   ds = nc.Dataset(SoilCEC_Location, "r")
   cec = ds['T_CEC_CLAY']
@@ -173,12 +201,12 @@ def Get_SoilCEC(Latitude, Longitude, SoilCEC_Location):
 
   ## Loop through all lat/lon combinations and find the 
   out_list = []
-  for i in range(len(Latitude)):
+  for item in range(len(Latitude)):
     
-    print(i)
+    #print(item)
     
-    lat_i = Latitude[i]
-    lon_i = Longitude[i]
+    lat_i = Latitude[item]
+    lon_i = Longitude[item]
       
     ## Find the minimum distance between all lat/lon and current lat/lon of interest
     i = np.abs(ds.variables["lon"][:] - lon_i).argmin()
@@ -190,10 +218,9 @@ def Get_SoilCEC(Latitude, Longitude, SoilCEC_Location):
     ## Add value to list
     out_list.append(cec_value)
     
-  ## Set up output dataframe 
-  output              = pd.DataFrame(Latitude, columns = ["Latitude"])
-  output["Longitude"] = Longitude
-  output["Soil_CEC"]  = out_list
+  ## Create a pandas dataframe 
+  output = Location_DF
+  Location_DF["Soil_CEC"] = out_list
   
   return output
 
