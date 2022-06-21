@@ -13,7 +13,7 @@ setup(
                       'matplotlib',
                       'seaborn',
                       'ee',
-                      'scipy'                    
+                      'scipy',
                       ],
 
     classifiers=[
