@@ -188,8 +188,69 @@ def mature_biomass_spawn(lat, lng, buffer=20):
 
 
 
+def root_shoot_ipcc(lat, lng, veg_type='other broadleaf'):
+    """
+    Parameters
+    ----------
+    lat : [float]
+          latitude of project in decimal degrees
+    lng : [float]
+          longitude of project in decimal degrees
+    veg_type : [string]
+              forest type from IPCC choices -- may need to look at IPCC documentation to determine which is relevant
+              'coniferous', 'natural', 'broadleaf', 'cunninghamia sp.','eucalyptus sp.', 'picea abies', 
+              'pinus massoniana', 'pinus sp.', 'other broadleaf', 'tectona grandis', 'other', 'larix sp.', 
+              'pinus koraiensis', 'pinus sylvestris', 'pinus tabuliformis', 'poplar sp.', 'robinia pseudoacacia', 
+              'abies sp.', 'oaks and other hardwoods', 'picea sp.', 'populus sp.','pseudotsuga menziesii', 
+              'acacia crassicarpa','castanopsis hystrix', 'mixed plantation','quercus and other hardwoods', 
+              'acacia auriculiformis','acaica mangium', 'cassia montana', 'cedeus libani', 'oil palm',
+              'swietenia macrophylla', 'acacia mangium', 'gmelina arborea','hevea brasiliensis', 'mangifera indica',
+              'mixed', 'acacia sp.','azadirachta indica', 'casuarina equisetifolia', 'pongamia pinnata'
+              Default is 'other broadleaf' since that seems like a likely option for these projects
+    
+    Returns
+    -------
+    return[0] : agb biomass threshold between young and old root to shoot, root_shoot_break (t/ha)
+    return[1] : root to shoot ratio for young trees, rs_young
+    return[2] : root to shoot ratio for old trees, rs_old
+    """
+    
+    # load IPCC root to shoot table (from Joe's scripts)
+    root_shoot_ipcc = pd.read_csv('https://raw.githubusercontent.com/Earthshot-Labs/science/master/IPCC_tier_1/ipcc_table_intermediate_files/ipcc_tier1_all.csv?token=GHSAT0AAAAAABQWL3QQJJNMXV3BWEXIE3VIYVTO5UA')
 
-def curve_fit_func(input_df, lat, lng, y_max_agb_bgb, root_to_shoot=0.285, biomass_to_c=0.47):
+    # open gez2010 shapefile for Global Ecoological Zones
+    dir_here = os.getcwd()
+    gez_shp = dir_here + '/deepdive_automation/gez2010/gez_2010_wgs84.shp'
+    gez_gdf = gpd.read_file(gez_shp)
+    
+    # Get GEZ
+    point_xy = [[lng], [lat]]
+    poi = gpd.points_from_xy(x=point_xy[0], y=point_xy[1])
+
+    idx = gez_gdf['geometry'].contains(poi[0])
+    eco_type = gez_gdf.loc[idx,'gez_name'].values[0].lower()
+
+    # get geometries of world countries
+    world = gpd.read_file(gpd.datasets.get_path('naturalearth_lowres'))
+
+    idx = world['geometry'].contains(poi[0])
+    continent = world.loc[idx,'continent'].values[0].lower()
+
+    # get relevant rows
+    rs_rows = root_shoot_ipcc[(root_shoot_ipcc.continent == continent) & 
+                              (root_shoot_ipcc.nump == eco_type) & 
+                              (root_shoot_ipcc.forest_type == for_type)]
+
+    # if multiple rows then average values???
+    root_shoot_break = rs_rows['root_shoot_break'].mean()
+    rs_young = rs_rows['rs_young'].mean()
+    rs_old = rs_rows['rs_old'].mean()
+    
+    return root_shoot_break, rs_young, rs_old
+
+    
+
+def curve_fit_func(input_df, lat, lng, y_max_agb_bgb, rs_break, rs_young=0.285, rs_old=0.285, biomass_to_c=0.47):
     """
     function to take dataframe of agb+bgb biomass, location, and constants to execute Chapman Richards curve fitting
     
@@ -203,9 +264,14 @@ def curve_fit_func(input_df, lat, lng, y_max_agb_bgb, root_to_shoot=0.285, bioma
             longitude of site in decimal degrees
     y_max_agb_bgb : [float]
                     maximum biomass from mature forest in tCO2e/ha
-    root_to_shoot : [float]
-                    root to shoot ratio, should change this to extract from IPCC tier 1 tables
-                    default = 0.285, value from IPCC Tier 1 table for moist tropical forest with biomass < 125
+    rs_break : [float]
+                aboveground biomass at which the root-to-shoot ratio switches from young value to old value from IPCC tier 1 tables 
+    rs_young : [float]
+               root-to-shoot ratio for young forests (with lower biomass than rs_break)
+               default = 0.285, value from IPCC Tier 1 table for moist tropical forest with biomass < 125
+    rs_old : [float]
+              root-to-shoot ratio for old forests (with hiher biomass than rs_break)
+              default = 0.285, value from IPCC Tier 1 table for moist tropical forests
     biomass_to_c : [float]
                     fraction of biomass that is C, here default is 0.47 but user can change for biome or location specific
     
@@ -223,7 +289,11 @@ def curve_fit_func(input_df, lat, lng, y_max_agb_bgb, root_to_shoot=0.285, bioma
     
         # if have agb but not bgb or agb+bgb ... use root-to-shoot to get bgb ... agb+bgb is sum of cols 2,3
         if pd.notna(input_df.at[i,'agb_t_ha']) & pd.isna(input_df.at[i,'bgb_t_ha']) & pd.isna(input_df.at[i,'agb_bgb_t_ha']):
-            input_df.at[i,'bgb_t_ha'] = input_df.at[i,'agb_t_ha'] * root_to_shoot
+            # if agb > rs_break then use rs_old, else use rs_young
+            if input_df.at[i,'agb_t_ha'] > rs_old:
+                input_df.at[i,'bgb_t_ha'] = input_df.at[i,'agb_t_ha'] * rs_old
+            else:
+                input_df.at[i,'bgb_t_ha'] = input_df.at[i,'agb_t_ha'] * rs_young
             input_df.at[i,'agb_bgb_t_ha'] = input_df.at[i,'agb_t_ha'] + input_df.at[i,'bgb_t_ha']
 
         # if have agb and bgb but not agb+bgb ... sum cols 2,3
@@ -273,6 +343,7 @@ def curve_fit_func(input_df, lat, lng, y_max_agb_bgb, root_to_shoot=0.285, bioma
                             'tCO2/ha': pred_agb_bgb.reshape(1,100).tolist()[0]})
 
     return c_fig, c_curve
+
 
 
 # chave allometry if you have height data
