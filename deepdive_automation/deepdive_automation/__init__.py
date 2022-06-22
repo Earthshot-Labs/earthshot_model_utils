@@ -11,3 +11,5 @@ __credits__ = 'Earthshot Labs'
 from .deepdive_funcs import wood_density_lookup
 from .deepdive_funcs import curve_fun
 from .deepdive_funcs import curve_fit_func
+from .deepdive_funcs import chave_allometry_height
+from .deepdive_funcs import mature_biomass_spawn

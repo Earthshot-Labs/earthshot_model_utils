@@ -5,14 +5,14 @@ import geopandas as gpd
 import matplotlib.pyplot as plt
 import seaborn as sns
 
-#import ee
+import ee
 from scipy.optimize import curve_fit
 
-#try:
-#    ee.Initialize()
-#except:
-#    ee.Authenticate()
-#    ee.Initialize()
+try:
+    ee.Initialize()
+except:
+    ee.Authenticate()
+    ee.Initialize()
 
 
 # look up wood density from Zanne et al 2009: https://datadryad.org/stash/dataset/doi:10.5061/dryad.234
@@ -138,8 +138,58 @@ def curve_fun(x, k, p):
     return y
 
 
+def mature_biomass_spawn(lat, lng, buffer=20):
+    """
+    Get mature biomass (ymax) in tCO2e/ha including aboveground and belowground biomass from Spawn et al. (2020)
+    
+    Parameters
+    ---------
+    lat : [float]
+          latitude in decimal degrees for project location
+    lng : [float]
+          longitude in decimal degrees for project location
+    buffer : [float]
+             distance in km over which to search for mature biomass (default = 20 km)
+    
+    Returns
+    -------
+    mature biomass in tCO2e/ha including aboveground and belowground biomass
+    """
+    
+    # get max from carbon density GEE -----------------
+    pt = ee.Geometry.Point(lat, lng)
+    buffered_pt = pt.buffer(distance=buffer*1000)
+    biomass_image = ee.ImageCollection("NASA/ORNL/biomass_carbon_density/v1").first()
 
-def curve_fit_func(input_df, lat, lng, root_to_shoot=0.285, biomass_to_c=0.47):
+    agb_image = biomass_image.select('agb')
+
+    # Take the maximum AGB in a radius of 20km 
+    sample_agb = agb_image.reduceRegion(
+        geometry=buffered_pt, 
+        reducer=ee.Reducer.max(),
+        scale=300)
+
+    bgb_image = biomass_image.select('bgb')
+
+    # Take the maximum AGB in a radius of 20km 
+    sample_bgb = bgb_image.reduceRegion(
+        geometry=buffered_pt, 
+        reducer=ee.Reducer.max(),
+        scale=300)
+
+    data_dict_agb = sample_agb.getInfo() #gets tC/ha
+    data_dict_bgb = sample_bgb.getInfo() #gets tC/ha
+
+    y_max_agb = data_dict_agb['agb'] * c_to_co2
+    y_max_bgb = data_dict_bgb['bgb'] * c_to_co2
+    y_max_agb_bgb = y_max_agb + y_max_bgb
+    
+    return y_max_agb_bgb
+
+
+
+
+def curve_fit_func(input_df, lat, lng, y_max_agb_bgb, root_to_shoot=0.285, biomass_to_c=0.47):
     """
     function to take dataframe of agb+bgb biomass, location, and constants to execute Chapman Richards curve fitting
     
@@ -151,6 +201,8 @@ def curve_fit_func(input_df, lat, lng, root_to_shoot=0.285, biomass_to_c=0.47):
             latitude of site in decimal degrees
     lng : [float]
             longitude of site in decimal degrees
+    y_max_agb_bgb : [float]
+                    maximum biomass from mature forest in tCO2e/ha
     root_to_shoot : [float]
                     root to shoot ratio, should change this to extract from IPCC tier 1 tables
                     default = 0.285, value from IPCC Tier 1 table for moist tropical forest with biomass < 125
@@ -189,34 +241,6 @@ def curve_fit_func(input_df, lat, lng, root_to_shoot=0.285, biomass_to_c=0.47):
     input_df['bgb_tCO2e_ha'] = input_df['bgb_t_ha'] * biomass_to_c * c_to_co2
     input_df['agb_bgb_tCO2e_ha'] = input_df['agb_bgb_t_ha'] * biomass_to_c * c_to_co2
 
-    # get max from carbon density GEE -----------------
-    pt = ee.Geometry.Point(lat, lng)
-    buffered_pt = pt.buffer(distance=20000)
-    biomass_image = ee.ImageCollection("NASA/ORNL/biomass_carbon_density/v1").first()
-
-    agb_image = biomass_image.select('agb')
-
-    # Take the maximum AGB in a radius of 20km 
-    sample_agb = agb_image.reduceRegion(
-        geometry=buffered_pt, 
-        reducer=ee.Reducer.max(),
-        scale=300)
-
-    bgb_image = biomass_image.select('bgb')
-
-    # Take the maximum AGB in a radius of 20km 
-    sample_bgb = bgb_image.reduceRegion(
-        geometry=buffered_pt, 
-        reducer=ee.Reducer.max(),
-        scale=300)
-
-    data_dict_agb = sample_agb.getInfo() #gets tC/ha
-    data_dict_bgb = sample_bgb.getInfo() #gets tC/ha
-
-    y_max_agb = data_dict_agb['agb'] * c_to_co2
-    y_max_bgb = data_dict_bgb['bgb'] * c_to_co2
-    y_max_agb_bgb = y_max_agb + y_max_bgb
-
     # prepare data for curve fit -----------
     age = np.array(input_df['age']).reshape((input_df['age'].shape[0],1))
     agb_bgb_tco2_ha = input_df['agb_bgb_tCO2e_ha']
@@ -249,3 +273,25 @@ def curve_fit_func(input_df, lat, lng, root_to_shoot=0.285, biomass_to_c=0.47):
                             'tCO2/ha': pred_agb_bgb.reshape(1,100).tolist()[0]})
 
     return c_fig, c_curve
+
+
+# chave allometry if you have height data
+def chave_allometry_height(WD, DBH, H):
+    """
+    Function to return individual tree AGB (kg biomass) from wood density (g/cm3, DBH (cm), and height (m) data on individual stems
+    NOTE: there is a different Chave allometry function for instances where you don't have tree height data
+    
+    Parameters
+    ----------
+    WD : [float]
+         wood density (g/cm3) for individual stem (should be species, region specific)
+    DBH : [float]
+          diameter at breast height (cm) for individual stems (for multistem trees DBH = sqrt(DBH1**2 + DBH2**2 + DBH3**2))
+    H : [float]
+        tree height (m) for indivdual trees
+    
+    Return
+    ------
+    AGB for individual tree in kg
+    """
+    return WD * np.exp(-2.977 + np.log(WD * DBH**2 * H))
