@@ -116,7 +116,7 @@ def wood_density_lookup(species_list, lat, lng):
         wood_db_here = wood_db[wood_db.region == 'Oceania']
         
     # get standard variance for species that only have 1 measurement
-    standard_std = wood_db_here.groupby(['binomial'])['wd_gcm3'].agg('std')['std'].mean()
+    standard_std = wood_db_here.groupby(['binomial'])['wd_gcm3'].agg('std').mean()
     
     # filter species and get species mean
     #species_list = ['Abarema jupunba','Zygia latifolia'] for testing
@@ -485,7 +485,7 @@ def chave_allometry_height(WD, DBH, H):
 
 
 # chave allometry if you don't have height data
-def chave_allometry_noheight(shape_file, DBH, WD):
+def chave_allometry_noheight(ftr_collection, DBH, WD):
     """
     Function takes shapefile and dataframe of DBHs and WD to calculate tree-level AGB in kg
     
