@@ -19,6 +19,9 @@ NOTE: you will need to download the GEZ2010 shapefile into a data folder as this
 `chave_allometry_noheight`
 `getNearbyMatureForestPercentiles`
 
+**Examples:**
+There is a notebook in the science repo with examples of usage for each function: https://github.com/Earthshot-Labs/science/blob/master/Ad-hoc_project_analyses/Deepdive_automation_examples.ipynb 
+
 **Issues:**
 - GEZ shapefile too large to host on github (need to figure out how to access it without uploading) -- add to `.gitignore`.
 - Root to shoot ratio table from Joe is in private repo so can't access it through pandas url call -- download and add to `.gitignore`?? Or copy into this repo? But then we're not tracking changes ...
