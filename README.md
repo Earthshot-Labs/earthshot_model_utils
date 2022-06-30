@@ -39,4 +39,4 @@ curve fit:
 - average plots of same age??
 
 wood density:
-- could also return n values that were averaged from and SD of WD values (figure out default WD to return if n=1)
+- consider more carefully how default SD of WD for n=1 is returned (now it's the mean SD of WD across the region). We don't want it to be 0 because it could be used to track uncertainty in the future. But the current default SD(WD) could be misleading because it's biased to what appeared in the literature?
