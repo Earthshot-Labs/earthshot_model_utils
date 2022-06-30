@@ -116,7 +116,7 @@ def wood_density_lookup(species_list, lat, lng):
         wood_db_here = wood_db[wood_db.region == 'Oceania']
         
     # get standard variance for species that only have 1 measurement
-    standard_std = wood_db_here.groupby(['binomial'])['wd_gcm3'].agg('std')['std'].mean()
+    standard_std = wood_db_here.groupby(['binomial'])['wd_gcm3'].agg('std').mean()
     
     # filter species and get species mean
     #species_list = ['Abarema jupunba','Zygia latifolia'] for testing
@@ -366,7 +366,8 @@ def root_shoot_ipcc(lat, lng, veg_type='other broadleaf'):
 
     
 
-def curve_fit_func(input_df, lat, lng, y_max_agb_bgb, rs_break, rs_young=0.285, rs_old=0.285, biomass_to_c=0.47):
+
+def curve_fit_func(input_df, d_type, lat, lng, y_max_agb_bgb, rs_break, rs_young=0.285, rs_old=0.285, biomass_to_c=0.47):
     """
     function to take dataframe of agb+bgb biomass, location, and constants to execute Chapman Richards curve fitting
     
@@ -374,6 +375,9 @@ def curve_fit_func(input_df, lat, lng, y_max_agb_bgb, rs_break, rs_young=0.285, 
     ----------
     input_df : [pandas dataframe]
                 pandas dataframe with columns 'agb_t_ha', 'bgb_t_ha', 'agb_bgb_t_ha' for the biomass data at location
+    d_type : [string]
+            'biomass' if input_df contains biomass in t/ha
+            'carbon' if input_df contains carbon in t/ha
     lat : [float]
             latitude of site in decimal degrees
     lng : [float]
@@ -396,9 +400,6 @@ def curve_fit_func(input_df, lat, lng, y_max_agb_bgb, rs_break, rs_young=0.285, 
     output[0] : plot of chapman richards curve with data points displayed
     output[1] : table of projected C accumulation with columns age (1-100) and tCO2e/ha
     """
-
-    # constants
-    c_to_co2 = (44/12) #conversion factor c to co2 equivalent
     
     # fill in missing bgb, agb+bgb ------------
     for i in range(0, input_df.shape[0]):
@@ -423,9 +424,14 @@ def curve_fit_func(input_df, lat, lng, y_max_agb_bgb, rs_break, rs_young=0.285, 
     input_df.reset_index(drop=False, inplace=True)
 
     # convert biomass to CO2e -----------------
-    input_df['agb_tCO2e_ha'] = input_df['agb_t_ha'] * biomass_to_c * c_to_co2
-    input_df['bgb_tCO2e_ha'] = input_df['bgb_t_ha'] * biomass_to_c * c_to_co2
-    input_df['agb_bgb_tCO2e_ha'] = input_df['agb_bgb_t_ha'] * biomass_to_c * c_to_co2
+    if (d_type == 'biomass'):
+        input_df['agb_tCO2e_ha'] = input_df['agb_t_ha'] * biomass_to_c * c_to_co2
+        input_df['bgb_tCO2e_ha'] = input_df['bgb_t_ha'] * biomass_to_c * c_to_co2
+        input_df['agb_bgb_tCO2e_ha'] = input_df['agb_bgb_t_ha'] * biomass_to_c * c_to_co2
+    else:
+        input_df['agb_tCO2e_ha'] = input_df['agb_t_ha'] * c_to_co2
+        input_df['bgb_tCO2e_ha'] = input_df['bgb_t_ha'] * c_to_co2
+        input_df['agb_bgb_tCO2e_ha'] = input_df['agb_bgb_t_ha'] * c_to_co2
 
     # prepare data for curve fit -----------
     age = np.array(input_df['age']).reshape((input_df['age'].shape[0],1))
@@ -485,7 +491,7 @@ def chave_allometry_height(WD, DBH, H):
 
 
 # chave allometry if you don't have height data
-def chave_allometry_noheight(shape_file, DBH, WD):
+def chave_allometry_noheight(DBH, WD, ftr_collection="", lat=np.nan, lng=np.nan):
     """
     Function takes shapefile and dataframe of DBHs and WD to calculate tree-level AGB in kg
     
@@ -493,6 +499,11 @@ def chave_allometry_noheight(shape_file, DBH, WD):
     ----------
     ftr_collection : [string]
                       GEE asset containing shapefile for project
+                      default is empty string
+    lat : [float]
+            latitude in decimal degrees to use if don't have shapefile
+    lng : [float]
+            longitude in decimal degrees to use if don't have shapefile
     DBH : [float]
            list of DBHs in cm for individual stems
     WD : [float]
@@ -503,7 +514,11 @@ def chave_allometry_noheight(shape_file, DBH, WD):
     AGB for each stem in kg
     """
     
-    roi = ee.FeatureCollection(ftr_collection)
+    if len(ftr_collection) > 0:
+        roi = ee.FeatureCollection(ftr_collection)
+    else:
+        pt = ee.Geometry.Point(lng, lat) #x,y
+        roi = pt.buffer(distance=100)
 
     # Environmental stress factor on the diameter-height tree allometry
     environmental_stress_factor = ee.Image("projects/ee-margauxmasson-madre-de-dios/assets/Environmental_stress_factor_chave") # E equation global gridded layer of E at 2.5 arc sec resolution 
@@ -519,4 +534,4 @@ def chave_allometry_noheight(shape_file, DBH, WD):
 
     # calculate biomass
     AGB_kg = np.exp(-1.803 - 0.976*E + 0.976 * np.log(WD) + 2.673 * np.log(DBH)- 0.0299*(np.log(DBH)**2))
-    return AGB_kg    
+    return AGB_kg
