@@ -7,7 +7,7 @@ This folder contains an installable Python package called `deepdive_automation` 
 **Installation:**
 Download folder to your local workspace. In Terminal activate the virtual environment where you want to install the `deepdive_automation` package. Navigate to the `deepdive_automation` folder (in terminal). Pip install the package using `pip install deepdive_automation`. This should install the package into the activated virutal environment. Then in Python (jupyter notebook or elsewhere using the same virtual environment) you will be able to access the package using `import deepdive_automation`. Functions can be used as `deepdive_automation.wood_density_lookup(...)`.
 
-NOTE: you will need to download the GEZ2010 shapefile into a data folder as this is part of the gitignore file. Specific instructions on this are coming soon. Link to download shapefile is: https://storage.googleapis.com/fao-maps-catalog-data/uuid/2fb209d0-fd34-4e5e-a3d8-a13c241eb61b/resources/gez2010.zip
+NOTE: you will need to download the GEZ2010 shapefile into a data folder as this is part of the gitignore file. Specific instructions on this are coming soon. Link to download shapefile is: https://storage.googleapis.com/fao-maps-catalog-data/uuid/2fb209d0-fd34-4e5e-a3d8-a13c241eb61b/resources/gez2010.zip and you will also need to download this file from Joe's IPCC Tier 1 work: https://github.com/Earthshot-Labs/science/blob/master/IPCC_tier_1/prediction/ipcc_table_intermediate_files/ipcc_tier1_all.csv (since it's a private repo I'm having issues automatically pulling the file from the function)
 
 **Functions:**
 `wood_density_lookup`
@@ -16,14 +16,15 @@ NOTE: you will need to download the GEZ2010 shapefile into a data folder as this
 `chave_allometry_height`
 `mature_biomass_spawn`
 `root_shoot_ipcc`
+`chave_allometry_noheight`
+`getNearbyMatureForestPercentiles`
 
 **Issues:**
 - GEZ shapefile too large to host on github (need to figure out how to access it without uploading) -- add to `.gitignore`.
+- Root to shoot ratio table from Joe is in private repo so can't access it through pandas url call -- download and add to `.gitignore`?? Or copy into this repo? But then we're not tracking changes ...
 
 **Functions want to make:**
-- Chave allometry (without height) -- need E layer from Margaux (or how to access it on GEE)
 - allometry for palms (maybe function chooses right allometry based on whether it's a palm and what data columns you have)? Are these factored into Chave allometry or should they be separate?
-- ymax from Margaux's mature biomass code (coming later this summer)
 
 **To consider:**
 
@@ -33,8 +34,6 @@ mature biomass spawn:
 curve fit:
 - uncertainty (MC simulation, picking ymax, effect of allometries)
 - average plots of same age??
-- replace code for ymax with Margaux's piece
-- better way to pick forest type for IPCC root to shoot ratio
 
 wood density:
 - could also return n values that were averaged from and SD of WD values (figure out default WD to return if n=1)
