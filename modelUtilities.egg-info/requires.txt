@@ -1,5 +1,0 @@
-rasterio
-pandas
-numpy
-geopandas
-netCDF4

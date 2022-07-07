@@ -1,0 +1,11 @@
+Metadata-Version: 2.1
+Name: model-utilities
+Version: 0.2.0
+Summary: A Python package with utility functions for ecosystem analysis and modeling
+Home-page: https://github.com/Earthshot-Labs/model_utilities
+Author: Earthshot Science Team
+Classifier: Development Status :: 1 - Planning
+Classifier: Intended Audience :: Science/Research
+Classifier: Programming Language :: Python :: 3
+Classifier: Programming Language :: Python :: 3.4
+Classifier: Programming Language :: Python :: 3.5

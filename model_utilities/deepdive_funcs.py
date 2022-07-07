@@ -336,7 +336,7 @@ def root_shoot_ipcc(lat, lng, veg_type='other broadleaf'):
 
     # open gez2010 shapefile for Global Ecoological Zones
     dir_here = os.getcwd()
-    gez_shp = dir_here + '/deepdive_automation/gez2010/gez_2010_wgs84.shp'
+    gez_shp = dir_here + '/model_utilities/gez2010/gez_2010_wgs84.shp'
     gez_gdf = gpd.read_file(gez_shp)
     
     # Get GEZ
