@@ -1,26 +1,26 @@
 from setuptools import setup
 
 setup(
-    name='modelUtilities',
-    version='0.1.0',    
-    description='Model Feature and Data Organizing Modules',
-    url='',
-    author='Meghan Blumstein',
-    author_email='meghan@earthshot.eco',
-    license='',
-    packages=['modelUtilities'],
-    install_requires=['rasterio',
-                      'pandas',
-                      'numpy',
+    name='model_utilities',
+    version='0.2.0',
+    description='A Python package with utility functions for ecosystem analysis and modeling',
+    url='https://github.com/Earthshot-Labs/model_utilities',
+    author='Earthshot Science Team',
+    packages=['model_utilities'],
+    install_requires=['pandas',
+                      'numpy', 
                       'geopandas',
-                      'netCDF4'
+                      'matplotlib',
+                      'seaborn',
+                      'ee',
+                      'scipy',
                       ],
 
     classifiers=[
         'Development Status :: 1 - Planning',
         'Intended Audience :: Science/Research',
-        'License :: OSI Approved :: BSD License',  
-        'Operating System :: MacOS :: MacOS X',        
-        'Programming Language :: Python :: 3.8',
+        'Programming Language :: Python :: 3',
+        'Programming Language :: Python :: 3.4',
+        'Programming Language :: Python :: 3.5',
     ],
 )
