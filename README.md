@@ -44,6 +44,7 @@ curve fit:
 
 logistic_fun:
 - force it to start at 0 otherwise some data gives a big jump from year 0 to year 1 which would be problematic for ops
+- put bounds on k parameter (maybe 0,5?) so that biomass growth can't be too fast or too flat
 
 wood density:
 - consider more carefully how default SD of WD for n=1 is returned (now it's the mean SD of WD across the region). We don't want it to be 0 because it could be used to track uncertainty in the future. But the current default SD(WD) could be misleading because it's biased to what appeared in the literature?
