@@ -15,6 +15,7 @@ If you have a new version of the package ready to install, navigate to the folde
 **Functions:**
 `wood_density_lookup`
 `curve_fun`
+`logistic_fun`
 `curve_fit_func`
 `chave_allometry_height`
 `mature_biomass_spawn`
@@ -40,6 +41,9 @@ mature biomass spawn:
 curve fit:
 - uncertainty (MC simulation, picking ymax, effect of allometries)
 - average plots of same age??
+
+logistic_fun:
+- force it to start at 0 otherwise some data gives a big jump from year 0 to year 1 which would be problematic for ops
 
 wood density:
 - consider more carefully how default SD of WD for n=1 is returned (now it's the mean SD of WD across the region). We don't want it to be 0 because it could be used to track uncertainty in the future. But the current default SD(WD) could be misleading because it's biased to what appeared in the literature?
