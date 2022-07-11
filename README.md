@@ -9,6 +9,9 @@ Download folder to your local workspace. In Terminal activate the virtual enviro
 
 NOTE: you will need to download the GEZ2010 shapefile into a data folder as this is part of the gitignore file. Specific instructions on this are coming soon. Link to download shapefile is: https://storage.googleapis.com/fao-maps-catalog-data/uuid/2fb209d0-fd34-4e5e-a3d8-a13c241eb61b/resources/gez2010.zip and you will also need to download this file from Joe's IPCC Tier 1 work: https://github.com/Earthshot-Labs/science/blob/master/IPCC_tier_1/prediction/ipcc_table_intermediate_files/ipcc_tier1_all.csv (since it's a private repo I'm having issues automatically pulling the file from the function)
 
+**Update:**
+If you have a new version of the package ready to install, navigate to the folder as with the install and type `pip install --upgrade .`.
+
 **Functions:**
 `wood_density_lookup`
 `curve_fun`
