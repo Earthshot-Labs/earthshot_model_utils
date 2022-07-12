@@ -30,6 +30,30 @@ def chapman_richards_set_ymax(x, k, p):
     y = x[:,1] * np.power( (1 - np.exp(-k * x[:,0])), p)
     return y
 
+
+def logistic_set_ymax(x, x_0=0, k=1):
+    """
+    basic math for logistic curve fit, called by curve_fit_func
+    y(t) = c / (1 + a*exp(-b*t)) where t is age and c is the maximum biomass (here replaced c in numerator with 1 
+    since multiply by max biomass)
+    nice visual of effect of changing parameters: https://datascience.oneoffcoder.com/s-curve.html
+    
+    Parameters
+    ----------
+    x : vector of data x values
+    a : [float]
+        a parameter
+    b : [float]
+        b parameter
+    
+    Returns
+    -------
+    vector of y values
+    """
+    y = x[:,1] / (1 + np.exp(-k * (x[:,0] - x_0)))
+    return y
+
+
 def clean_biomass_data(input_df, d_type, rs_break=125, rs_young=0.285, rs_old=0.285, biomass_to_c=0.47):
     """
     Function to take dataframe of agb and possibly bgb. Fills in missing bgb according to supplied parameters.
@@ -95,6 +119,8 @@ def clean_biomass_data(input_df, d_type, rs_break=125, rs_young=0.285, rs_old=0.
 
     return input_df
 
+
+
 def curve_fit_set_ymax(input_df, y_max_agb_bgb, years_pred=100, curve_fun=chapman_richards_set_ymax,
                        n_mc=1000):
     """
@@ -112,6 +138,8 @@ def curve_fit_set_ymax(input_df, y_max_agb_bgb, years_pred=100, curve_fun=chapma
                  length of time series to predict (years)
     curve_fun : [function]
                 the curve fit function to use
+                chapman_richards_set_ymax
+                logistic_set_ymax
     n_mc : [integer]
            number of monte carlo ensemble members
 
@@ -132,14 +160,28 @@ def curve_fit_set_ymax(input_df, y_max_agb_bgb, years_pred=100, curve_fun=chapma
 
     # curve fit
     # find parameters k and p
-    params, covar = curve_fit(f=curve_fun, xdata=x_data, ydata=agb_bgb_tco2_ha)
+    if curve_fun == logistic_set_ymax:
+        L_estimate = agb_bgb_tco2_ha.max()
+        x_0_estimate = np.median(age)
+        k_estimate = 1.0
+        p_0 = [L_estimate, x_0_estimate, k_estimate]
+        params, covar = curve_fit(logistic_fun, x_data, agb_bgb_tco2_ha, 
+            p_0, 
+            method='dogbox',
+            bounds=((-np.inf,-np.inf,0.1),(np.inf,np.inf,5)))
+    elif curve_fun == chapman_richards_set_ymax:
+            params, covar = curve_fit(f=curve_fun, xdata=x_data, ydata=agb_bgb_tco2_ha,
+                bounds=((0,1),(np.inf,np.inf))) #k, p
 
     # Generate prediction ------------
     x_plot = np.arange(1,years_pred+1,1).reshape((years_pred,1))
     y_max_array_plot = np.ones_like(x_plot) * y_max_agb_bgb
     x_data_plot = np.concatenate((x_plot, y_max_array_plot), axis=1)
 
-    pred_agb_bgb = curve_fun(x=x_data_plot, k=params[0], p=params[1])
+    if curve_fun == logistic_set_ymax:
+        pred_agb_bgb = logistic_fun(x_data_plot, x_0=params[1], k=params[2])
+    elif curve_fun == chapman_richards_set_ymax:
+        pred_agb_bgb = curve_fun(x=x_data_plot, k=params[0], p=params[1])
 
     # output predictions ---------------
     df_out = pd.DataFrame({'Age': x_plot.reshape(1, years_pred).tolist()[0],
