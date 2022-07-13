@@ -122,7 +122,7 @@ def clean_biomass_data(input_df, d_type, rs_break=125, rs_young=0.285, rs_old=0.
 
 
 def curve_fit_set_ymax(input_df, y_max_agb_bgb, years_pred=100, curve_fun=chapman_richards_set_ymax,
-                       n_mc=1000, plot_mc=True):
+                       n_mc=1000):
     """
     function to take agb+bgb observations, fit a curve to them, and predict an interpolated/extrapolated
     time series. Assumes the ymax parameter will be specified (this could be made more general to handle
@@ -221,8 +221,7 @@ def curve_fit_set_ymax(input_df, y_max_agb_bgb, years_pred=100, curve_fun=chapma
     ax.plot(x_plot, pred_agb_bgb)
     ax.scatter(age, agb_bgb_tco2_ha, color='orange')
 
-    if plot_mc == True:
-        if n_mc > 0:
-            df_out.plot(y=[0.025, 0.5, 0.975], x='Age', linestyle='--', ax=ax)
+    if n_mc > 0:
+        df_out.plot(y=[0.025, 0.5, 0.975], x='Age', linestyle='--', ax=ax)
 
     return c_fig, df_out

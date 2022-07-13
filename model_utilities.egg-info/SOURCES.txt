@@ -1,7 +1,14 @@
+.DS_Store
+.gitignore
 README.md
 setup.py
+model_utilities/__init__.py
+model_utilities/curve_fitting.py
+model_utilities/deepdive_funcs.py
 model_utilities.egg-info/PKG-INFO
 model_utilities.egg-info/SOURCES.txt
 model_utilities.egg-info/dependency_links.txt
 model_utilities.egg-info/requires.txt
 model_utilities.egg-info/top_level.txt
+model_utilities/__pycache__/curve_fitting.cpython-39.pyc
+model_utilities/curve_fitting/.DS_Store
