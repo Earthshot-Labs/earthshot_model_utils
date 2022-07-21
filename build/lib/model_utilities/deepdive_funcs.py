@@ -90,7 +90,7 @@ def wood_density_lookup(species_list, lat, lng):
     elif ((pip.loc[0,'continent'] == 'South America') & ((pip.loc[0,'lat'] < -23.5) | (pip.loc[0,'lat'] > 23.5))):
         # filter wood den for region = South America (extratropical)
         wood_db_here = wood_db[wood_db.region == 'South America (extratropical)']
-    elif ((pip.loc[0,'continent'] == 'North America') & (pip.loc[0,'name_right'] not in countries_na_notcentral) & (pip.loc[0,'lat'] >= -23.5) & (pip.loc[0,'lat'] <= 23.5)):
+    elif ((pip.loc[0,'continent'] == 'North America') & (~pip.loc[0,'name_right'].isin(countries_na_notcentral)) & (pip.loc[0,'lat'] >= -23.5) & (pip.loc[0,'lat'] <= 23.5)):
         # filter wood den for region = Central America (tropical)
         wood_db_here = wood_db[wood_db.region == 'Central America (tropical)']
     elif (pip.loc[0,'continent'] == 'Europe'):
@@ -150,48 +150,6 @@ def curve_fun(x, k, p):
     vector of y values
     """
     y = x[:,1] * np.power( (1 - np.exp(-k * x[:,0])), p)
-    return y
-
-
-def sigmoid_fun(x, a, b):
-    """
-    basic math for sigmoid curve fit, called by curve_fit_func
-    
-    Parameters
-    ----------
-    x : vector of data x values
-    a : [float]
-        a parameter
-    b : [float]
-        b parameter
-    
-    Returns
-    -------
-    vector of y values
-    """
-    y = 1 / (1 + np.exp(-a * (x[:,0] - b)))
-    return y
-
-
-    # nice visual of effect of changing parameters: https://datascience.oneoffcoder.com/s-curve.html
-def logistic_fun(x, L=1, x_0=0, k=1):
-    """
-    basic math for logistic curve fit, called by curve_fit_func
-    y(t) = c / (1 + a*exp(-b*t)) where t is age and c is the maximum biomass (here replaced c in numerator with 1 since multiply by max biomass)
-    
-    Parameters
-    ----------
-    x : vector of data x values
-    a : [float]
-        a parameter
-    b : [float]
-        b parameter
-    
-    Returns
-    -------
-    vector of y values
-    """
-    y = x[:,1] / (1 + np.exp(-k * (x[:,0] - x_0)))
     return y
 
 
@@ -374,11 +332,11 @@ def root_shoot_ipcc(lat, lng, veg_type='other broadleaf'):
     """
     
     # load IPCC root to shoot table (from Joe's scripts)
-    root_shoot_ipcc = pd.read_csv('https://raw.githubusercontent.com/Earthshot-Labs/science/master/IPCC_tier_1/prediction/ipcc_table_intermediate_files/ipcc_tier1_all.csv?token=GHSAT0AAAAAABQWL3QREMVXR567IWPOZF22YV5W4YQ')
+    root_shoot_ipcc = pd.read_csv('https://raw.githubusercontent.com/Earthshot-Labs/science/master/IPCC_tier_1/ipcc_table_intermediate_files/ipcc_tier1_all.csv?token=GHSAT0AAAAAABQWL3QQJJNMXV3BWEXIE3VIYVTO5UA')
 
     # open gez2010 shapefile for Global Ecoological Zones
     dir_here = os.getcwd()
-    gez_shp = dir_here + '/deepdive_automation/gez2010/gez_2010_wgs84.shp'
+    gez_shp = dir_here + '/model_utilities/gez2010/gez_2010_wgs84.shp'
     gez_gdf = gpd.read_file(gez_shp)
     
     # Get GEZ
@@ -409,12 +367,9 @@ def root_shoot_ipcc(lat, lng, veg_type='other broadleaf'):
     
 
 
-
-
-
-def curve_fit_func(input_df, d_type, curve_type, y_max_agb_bgb, rs_break, rs_young=0.285, rs_old=0.285, biomass_to_c=0.47):
+def curve_fit_func(input_df, d_type, lat, lng, y_max_agb_bgb, rs_break, rs_young=0.285, rs_old=0.285, biomass_to_c=0.47):
     """
-    function to take dataframe of agb+bgb biomass, location, and constants to execute curve fitting
+    function to take dataframe of agb+bgb biomass, location, and constants to execute Chapman Richards curve fitting
     
     Parameters
     ----------
@@ -423,9 +378,9 @@ def curve_fit_func(input_df, d_type, curve_type, y_max_agb_bgb, rs_break, rs_you
     d_type : [string]
             'biomass' if input_df contains biomass in t/ha
             'carbon' if input_df contains carbon in t/ha
-    curve_type : [string]
-                'chapman-richards' if want default curve fit
-                'sigmoid' if want sigmoid curve fit
+    lat : [float]
+            latitude of site in decimal degrees
+    lng : [float]
             longitude of site in decimal degrees
     y_max_agb_bgb : [float]
                     maximum biomass from mature forest in tCO2e/ha
@@ -487,29 +442,14 @@ def curve_fit_func(input_df, d_type, curve_type, y_max_agb_bgb, rs_break, rs_you
 
     # curve fit
     # find parameters k and p
-    if curve_type == 'sigmoid':
-        params, covar = curve_fit(f=sigmoid_fun, xdata=x_data, ydata=agb_bgb_tco2_ha)
-    elif curve_type == 'logistic':
-        L_estimate = agb_bgb_tco2_ha.max()
-        x_0_estimate = np.median(age)
-        k_estimate = 1.0
-        p_0 = [L_estimate, x_0_estimate, k_estimate]
-        params, covar = curve_fit(logistic_fun, x_data, agb_bgb_tco2_ha, p_0, method='dogbox',
-            bounds=((-np.inf,-np.inf,0.1),(np.inf,np.inf,5)))
-    else:
-        params, covar = curve_fit(f=curve_fun, xdata=x_data, ydata=agb_bgb_tco2_ha)
+    params, covar = curve_fit(f=curve_fun, xdata=x_data, ydata=agb_bgb_tco2_ha)
 
     # Generate 100 yr prediction ------------
     x_plot = np.arange(1,101,1).reshape((100,1))
     y_max_array_plot = np.ones_like(x_plot) * y_max_agb_bgb
     x_data_plot = np.concatenate((x_plot, y_max_array_plot), axis=1)
 
-    if curve_type == 'sigmoid':
-        pred_agb_bgb = sigmoid_fun(x=x_data_plot, a=params[0], b=params[1])
-    elif curve_type == 'logistic':
-                pred_agb_bgb = logistic_fun(x_data_plot, L=params[0], x_0=params[1], k=params[2])
-    else:
-        pred_agb_bgb = curve_fun(x=x_data_plot, k=params[0], p=params[1])
+    pred_agb_bgb = curve_fun(x=x_data_plot, k=params[0], p=params[1])
 
     # Make plot ----------------
     c_fig, ax = plt.subplots(figsize=(15,5))
@@ -525,6 +465,7 @@ def curve_fit_func(input_df, d_type, curve_type, y_max_agb_bgb, rs_break, rs_you
                             'tCO2/ha': pred_agb_bgb.reshape(1,100).tolist()[0]})
 
     return c_fig, c_curve
+
 
 
 # chave allometry if you have height data
