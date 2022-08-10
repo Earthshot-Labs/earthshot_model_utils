@@ -378,16 +378,6 @@ def getWalkerMatureForestPercentiles(geojson, buffer=20):
     forestMask = (ee.ImageCollection("JAXA/ALOS/PALSAR/YEARLY/FNF")
                         .filterDate('2009-01-01', '2011-12-31')
                         .first().select('fnf').remap([1],[1],0))
-
-    #Forest Age as UInt8, 'old growth'==255
-    forestAge = ee.Image("projects/es-gis-resources/assets/forestage").select([0], ['forestage']);
-
-    # Find forests that are 50 years old, or at least older than 90% of forests in the ecoregion
-    matureForest = forestAge.gte(
-                        forestAge.reduceRegions(searchAreas, ee.Reducer.percentile([90]))
-                        .reduceToImage(['p90'], 'first')
-                        .min(50)
-                    )
     
     # Walker Potential C storage
     walker_potC = ee.Image('projects/ee-anikastaccone-regua/assets/Base_Pot_AGB_BGB_MgCha_500m')
@@ -398,7 +388,7 @@ def getWalkerMatureForestPercentiles(geojson, buffer=20):
                    .select([0], ['tCO2e'])) #agb_bgb in tCO2e/ha
 
     # Mask away non forests and young forests, and then get the pdf
-    featureDeciles = (walker_potC.mask(forestMask).mask(matureForest)
+    featureDeciles = (walker_potC.mask(forestMask)
                             .reduceRegions(searchAreas,
                                    ee.Reducer.percentile([5,10,20,30,40,50,60,70,80,90,95,100]),
                                    scale=100)
