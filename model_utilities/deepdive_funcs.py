@@ -343,6 +343,78 @@ def getNearbyMatureForestPercentiles(geojson, buffer=20):
 
 
 
+def getWalkerMatureForestPercentiles(geojson, buffer=20):
+    """
+    Take a geojson structure (output from landOS) and get a list of the deciles of max potential C (agb+bgb) in tCO2e/ha
+    From Walker dataset
+    
+    Parameters
+    ----------
+    geojson : [dict]
+               dictionary of shapefile that you get as the output from landOS for the "shapefile"
+    buffer : [float]
+              buffer distance in km (default = 20 km)
+    
+    Returns
+    -------
+    return[0] : biomass (agb+bgb) in tCO2e/ha from 20km buffer at 5%, 10%, 20%, 30%, 40%, 50%, 60%, 70%, 80%, 90%, 95%
+    return[1] : maximum biomass (agb+bgb) in tCO2e/ha from 20km buffer
+    """
+    
+    aoi = ee.FeatureCollection(geojson['features'])
+    
+    ## 1. Find ecoregions that overlap with the AOI
+    ecoregions = ee.FeatureCollection('RESOLVE/ECOREGIONS/2017');
+
+    # Get set of ecoregions that occur in the area of interest and limit distance to no more than 20km away
+    bounds = ee.Geometry(aoi.geometry(maxError=100))
+    buffered = bounds.buffer(distance=buffer*1000, maxError=1000) #distance=20000
+    searchAreas = ecoregions.filterBounds(bounds).map(
+                        lambda f: f.intersection(buffered))
+
+
+    ## 2. Within those ecoregions, find "mature forests"
+    #Additional Forest Non/Forest in 20210 from PALSAR
+    forestMask = (ee.ImageCollection("JAXA/ALOS/PALSAR/YEARLY/FNF")
+                        .filterDate('2009-01-01', '2011-12-31')
+                        .first().select('fnf').remap([1],[1],0))
+
+    #Forest Age as UInt8, 'old growth'==255
+    forestAge = ee.Image("projects/es-gis-resources/assets/forestage").select([0], ['forestage']);
+
+    # Find forests that are 50 years old, or at least older than 90% of forests in the ecoregion
+    matureForest = forestAge.gte(
+                        forestAge.reduceRegions(searchAreas, ee.Reducer.percentile([90]))
+                        .reduceToImage(['p90'], 'first')
+                        .min(50)
+                    )
+    
+    # Walker Potential C storage
+    walker_potC = ee.Image('projects/ee-anikastaccone-regua/assets/Base_Pot_AGB_BGB_MgCha_500m')
+
+    # Convert C -> CO2e
+    walker_potC = (walker_potC.select('b1')
+                   .multiply(3.66)
+                   .select([0], ['tCO2e'])) #agb_bgb in tCO2e/ha
+
+    # Mask away non forests and young forests, and then get the pdf
+    featureDeciles = (walker_potC.mask(forestMask).mask(matureForest)
+                            .reduceRegions(searchAreas,
+                                   ee.Reducer.percentile([5,10,20,30,40,50,60,70,80,90,95,100]),
+                                   scale=100)
+                            ).map(lambda f: ee.Feature(None, f.toDictionary()))
+
+    # Return a cleaned-up response
+    output_dict = _formatDecileResponse(featureDeciles.getInfo()) #could go back to returning the whole dict
+
+    for eco_id, ecozone in output_dict.items():
+        tCO2eha_deciles = ecozone['tCO2e_deciles']
+        tCO2eha_max = ecozone['tCO2e_max']
+        
+    return tCO2eha_deciles, tCO2eha_max    
+
+
+
 
 
 
