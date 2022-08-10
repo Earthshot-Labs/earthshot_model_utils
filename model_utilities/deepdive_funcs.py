@@ -343,6 +343,68 @@ def getNearbyMatureForestPercentiles(geojson, buffer=20):
 
 
 
+def getWalkerMatureForestPercentiles(geojson, buffer=20):
+    """
+    Take a geojson structure (output from landOS) and get a list of the deciles of max potential C (agb+bgb) in tCO2e/ha
+    From Walker dataset
+    
+    Parameters
+    ----------
+    geojson : [dict]
+               dictionary of shapefile that you get as the output from landOS for the "shapefile"
+    buffer : [float]
+              buffer distance in km (default = 20 km)
+    
+    Returns
+    -------
+    return[0] : biomass (agb+bgb) in tCO2e/ha from 20km buffer at 5%, 10%, 20%, 30%, 40%, 50%, 60%, 70%, 80%, 90%, 95%
+    return[1] : maximum biomass (agb+bgb) in tCO2e/ha from 20km buffer
+    """
+    
+    aoi = ee.FeatureCollection(geojson['features'])
+    
+    ## 1. Find ecoregions that overlap with the AOI
+    ecoregions = ee.FeatureCollection('RESOLVE/ECOREGIONS/2017');
+
+    # Get set of ecoregions that occur in the area of interest and limit distance to no more than 20km away
+    bounds = ee.Geometry(aoi.geometry(maxError=100))
+    buffered = bounds.buffer(distance=buffer*1000, maxError=1000) #distance=20000
+    searchAreas = ecoregions.filterBounds(bounds).map(
+                        lambda f: f.intersection(buffered))
+
+
+    ## 2. Within those ecoregions, find "mature forests"
+    #Additional Forest Non/Forest in 20210 from PALSAR
+    forestMask = (ee.ImageCollection("JAXA/ALOS/PALSAR/YEARLY/FNF")
+                        .filterDate('2009-01-01', '2011-12-31')
+                        .first().select('fnf').remap([1],[1],0))
+    
+    # Walker Potential C storage
+    walker_potC = ee.Image('projects/ee-anikastaccone-regua/assets/Base_Pot_AGB_BGB_MgCha_500m')
+
+    # Convert C -> CO2e
+    walker_potC = (walker_potC.select('b1')
+                   .multiply(3.66)
+                   .select([0], ['tCO2e'])) #agb_bgb in tCO2e/ha
+
+    # Mask away non forests and young forests, and then get the pdf
+    featureDeciles = (walker_potC.mask(forestMask)
+                            .reduceRegions(searchAreas,
+                                   ee.Reducer.percentile([5,10,20,30,40,50,60,70,80,90,95,100]),
+                                   scale=100)
+                            ).map(lambda f: ee.Feature(None, f.toDictionary()))
+
+    # Return a cleaned-up response
+    output_dict = _formatDecileResponse(featureDeciles.getInfo()) #could go back to returning the whole dict
+
+    for eco_id, ecozone in output_dict.items():
+        tCO2eha_deciles = ecozone['tCO2e_deciles']
+        tCO2eha_max = ecozone['tCO2e_max']
+        
+    return tCO2eha_deciles, tCO2eha_max    
+
+
+
 
 
 
@@ -594,3 +656,92 @@ def chave_allometry_noheight(DBH, WD, ftr_collection="", lat=np.nan, lng=np.nan)
     # calculate biomass
     AGB_kg = np.exp(-1.803 - 0.976*E + 0.976 * np.log(WD) + 2.673 * np.log(DBH)- 0.0299*(np.log(DBH)**2))
     return AGB_kg
+
+
+
+
+def _expandIPCC(years, r0, r20, k20, kmax, root_shoot_break, rs_young, rs_old):
+    # Aboveground Biomass (proposed fix above)
+    ## Biomass = np.minimum(k20, years*r0) + np.maximum(0, np.minimum(kmax, (years-20)*r20))
+    year20cap = np.minimum(k20, 20*r0)
+    yearsPast20 = np.maximum(0, years-20)
+    Biomass = np.minimum(year20cap, years*r0) + yearsPast20*r20
+    Biomass = np.minimum(kmax, Biomass)
+
+    # Add belowground biomass
+    Biomass *= 1 + rs_old + (rs_young-rs_old)*(Biomass<root_shoot_break)
+    
+    # Convert from dry biomass -> Carbon -> CO2e
+    Biomass *= 0.47*3.67
+    Biomass = np.round(Biomass,2)
+    
+    return Biomass
+    
+
+def PredictIPCC(polygonData=None, ecozone=None, continent=None, forest_type=None, yearStart = 0, yearEnd = 30):
+   
+    # Determine ecozone and continent, either from boundaries or passed to function
+    if not ecozone or not continent:
+        if not polygonData:
+            ret['valid'] = 0
+            ret['msg'] = "Parcel boundaries or both ecozone and continent must be specified"
+            return ret
+        
+        zone = _getEcozoneFromPolygons(polygonData)
+        ecozone = zone['ecozone'].lower()
+        continent = zone['continent'].lower()
+    
+    
+    #Read datafile
+    ipcc = pd.read_csv('./data/IPCC_Tier1_parameters.csv')
+    params = ipcc.loc[(ipcc['ecozone']==ecozone.lower()) & 
+                      (ipcc['continent']==continent.lower())]
+    
+    # Return if Invalid Ecozone / Contintent combination
+    if params.empty:
+        ret['valid'] = 0
+        ret['msg'] = "Ecozone and Continent combination not found"
+        return ret
+    
+    # Select forest type if provided
+    if forest_type:
+        params = params.loc[params['forest_type']==forest_type.lower()]
+        
+    # Return if forest type not found
+    if params.empty:
+        ret['valid'] = 0
+        ret['msg'] = f"No forest type '{forest_type}' available for {ecozone} and {continent}"
+        return ret
+    
+    
+    # Calculate low, median, and high biomass for specified year range for each forest type
+    ret = { 'valid': 1,
+            'msg': '',
+            'ecozone': ecozone,
+            'continent': continent,
+            'start_year': yearStart,
+            'end_year': yearEnd,
+            'units': 'tCO2e per reforestable ha',
+            'predictions': {},
+       }
+
+    
+    years = np.array(range(yearStart, yearEnd+1))
+    for r in params.to_dict('records'):
+
+        Med = _expandIPCC(years, r['r0'], r['r20'], r['K20'], r['Kmax'],
+                              r['root_shoot_break'], r['rs_young'], r['rs_old'] )
+        Low = _expandIPCC(years, r['r0_low'], r['r20_low'], r['K20_low'], r['Kmax_low'],
+                              r['root_shoot_break'], r['rs_young'], r['rs_old'] )
+        High = _expandIPCC(years, r['r0_high'], r['r20_high'], r['K20_high'], r['Kmax_high'],
+                              r['root_shoot_break'], r['rs_young'], r['rs_old'] )
+        
+        ret['predictions'][r['forest_type']]= {
+                        'biomass': Med,
+                        'biomassLow': Low,
+                        'biomassHigh': High,
+                        'uncertainty_method_cap': r['cap_uncertainty_type'],
+                        'uncertainty_method_rate':r['rate_uncertainty_type']
+                    }
+        
+    return ret    
