@@ -656,3 +656,92 @@ def chave_allometry_noheight(DBH, WD, ftr_collection="", lat=np.nan, lng=np.nan)
     # calculate biomass
     AGB_kg = np.exp(-1.803 - 0.976*E + 0.976 * np.log(WD) + 2.673 * np.log(DBH)- 0.0299*(np.log(DBH)**2))
     return AGB_kg
+
+
+
+
+def _expandIPCC(years, r0, r20, k20, kmax, root_shoot_break, rs_young, rs_old):
+    # Aboveground Biomass (proposed fix above)
+    ## Biomass = np.minimum(k20, years*r0) + np.maximum(0, np.minimum(kmax, (years-20)*r20))
+    year20cap = np.minimum(k20, 20*r0)
+    yearsPast20 = np.maximum(0, years-20)
+    Biomass = np.minimum(year20cap, years*r0) + yearsPast20*r20
+    Biomass = np.minimum(kmax, Biomass)
+
+    # Add belowground biomass
+    Biomass *= 1 + rs_old + (rs_young-rs_old)*(Biomass<root_shoot_break)
+    
+    # Convert from dry biomass -> Carbon -> CO2e
+    Biomass *= 0.47*3.67
+    Biomass = np.round(Biomass,2)
+    
+    return Biomass
+    
+
+def PredictIPCC(polygonData=None, ecozone=None, continent=None, forest_type=None, yearStart = 0, yearEnd = 30):
+   
+    # Determine ecozone and continent, either from boundaries or passed to function
+    if not ecozone or not continent:
+        if not polygonData:
+            ret['valid'] = 0
+            ret['msg'] = "Parcel boundaries or both ecozone and continent must be specified"
+            return ret
+        
+        zone = _getEcozoneFromPolygons(polygonData)
+        ecozone = zone['ecozone'].lower()
+        continent = zone['continent'].lower()
+    
+    
+    #Read datafile
+    ipcc = pd.read_csv('./data/IPCC_Tier1_parameters.csv')
+    params = ipcc.loc[(ipcc['ecozone']==ecozone.lower()) & 
+                      (ipcc['continent']==continent.lower())]
+    
+    # Return if Invalid Ecozone / Contintent combination
+    if params.empty:
+        ret['valid'] = 0
+        ret['msg'] = "Ecozone and Continent combination not found"
+        return ret
+    
+    # Select forest type if provided
+    if forest_type:
+        params = params.loc[params['forest_type']==forest_type.lower()]
+        
+    # Return if forest type not found
+    if params.empty:
+        ret['valid'] = 0
+        ret['msg'] = f"No forest type '{forest_type}' available for {ecozone} and {continent}"
+        return ret
+    
+    
+    # Calculate low, median, and high biomass for specified year range for each forest type
+    ret = { 'valid': 1,
+            'msg': '',
+            'ecozone': ecozone,
+            'continent': continent,
+            'start_year': yearStart,
+            'end_year': yearEnd,
+            'units': 'tCO2e per reforestable ha',
+            'predictions': {},
+       }
+
+    
+    years = np.array(range(yearStart, yearEnd+1))
+    for r in params.to_dict('records'):
+
+        Med = _expandIPCC(years, r['r0'], r['r20'], r['K20'], r['Kmax'],
+                              r['root_shoot_break'], r['rs_young'], r['rs_old'] )
+        Low = _expandIPCC(years, r['r0_low'], r['r20_low'], r['K20_low'], r['Kmax_low'],
+                              r['root_shoot_break'], r['rs_young'], r['rs_old'] )
+        High = _expandIPCC(years, r['r0_high'], r['r20_high'], r['K20_high'], r['Kmax_high'],
+                              r['root_shoot_break'], r['rs_young'], r['rs_old'] )
+        
+        ret['predictions'][r['forest_type']]= {
+                        'biomass': Med,
+                        'biomassLow': Low,
+                        'biomassHigh': High,
+                        'uncertainty_method_cap': r['cap_uncertainty_type'],
+                        'uncertainty_method_rate':r['rate_uncertainty_type']
+                    }
+        
+    return ret    
