@@ -44,7 +44,7 @@ ipcc:
 
 mature biomass spawn:
 - make sure that buffer only extends within same ecozone (talk to Joe)
-- figure out which percentiles to keep (eg 10%ile is often unrealistically low, maybe only keep 50%ile and above?)
+- figure out which percentiles to keep (eg 10%ile is often unrealistically low, maybe only keep 50%ile and above? same for Africa and Latin America?)
 
 curve fit:
 - uncertainty (effect of allometries)
@@ -54,3 +54,18 @@ curve fit:
 
 wood density:
 - consider more carefully how default SD of WD for n=1 is returned (now it's the mean SD of WD across the region). We don't want it to be 0 because it could be used to track uncertainty in the future. But the current default SD(WD) could be misleading because it's biased to what appeared in the literature?
+- what other wood density databases are there? Include wood density in our custom DB?
+
+research (quality flags):
+- when do UNR and ANR converge?
+- what is the reasonable time to 90% of max?
+- what is the maximum growth rate (slope) for any given location?
+
+agroforestry:
+- models specific to agroforestry systems
+
+intervention-specific:
+- effect of different species mixes
+- effect of interventions (e.g. irrigation, weeding, fertilizer, soil ammendments, soil tilling, ...)
+- effect of planting density (when does high planting density converge with other curves? max biomass would be the same regardless)
+
