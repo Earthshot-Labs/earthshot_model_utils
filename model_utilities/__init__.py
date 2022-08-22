@@ -15,9 +15,15 @@ from .deepdive_funcs import chave_allometry_height
 from .deepdive_funcs import mature_biomass_spawn
 from .deepdive_funcs import root_shoot_ipcc
 from .deepdive_funcs import getNearbyMatureForestPercentiles
+from .deepdive_funcs import getWalkerValues
 from .deepdive_funcs import chave_allometry_noheight
+from .deepdive_funcs import PredictIPCC
 
 from .curve_fitting import chapman_richards_set_ymax
 from .curve_fitting import logistic_set_ymax
+from .curve_fitting import chapman_richards_set_ymax_p
 from .curve_fitting import clean_biomass_data
 from .curve_fitting import curve_fit_set_ymax
+from .curve_fitting import curve_fit_set_ymax_deciles_freep
+from .curve_fitting import curve_fit_set_ymax_deciles
+

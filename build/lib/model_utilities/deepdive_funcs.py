@@ -90,7 +90,7 @@ def wood_density_lookup(species_list, lat, lng):
     elif ((pip.loc[0,'continent'] == 'South America') & ((pip.loc[0,'lat'] < -23.5) | (pip.loc[0,'lat'] > 23.5))):
         # filter wood den for region = South America (extratropical)
         wood_db_here = wood_db[wood_db.region == 'South America (extratropical)']
-    elif ((pip.loc[0,'continent'] == 'North America') & (~pip.loc[0,'name_right'].isin(countries_na_notcentral)) & (pip.loc[0,'lat'] >= -23.5) & (pip.loc[0,'lat'] <= 23.5)):
+    elif ((pip.loc[0,'continent'] == 'North America') & (pip.loc[0,'name_right'] not in countries_na_notcentral) & (pip.loc[0,'lat'] >= -23.5) & (pip.loc[0,'lat'] <= 23.5)):
         # filter wood den for region = Central America (tropical)
         wood_db_here = wood_db[wood_db.region == 'Central America (tropical)']
     elif (pip.loc[0,'continent'] == 'Europe'):
@@ -150,6 +150,48 @@ def curve_fun(x, k, p):
     vector of y values
     """
     y = x[:,1] * np.power( (1 - np.exp(-k * x[:,0])), p)
+    return y
+
+
+def sigmoid_fun(x, a, b):
+    """
+    basic math for sigmoid curve fit, called by curve_fit_func
+    
+    Parameters
+    ----------
+    x : vector of data x values
+    a : [float]
+        a parameter
+    b : [float]
+        b parameter
+    
+    Returns
+    -------
+    vector of y values
+    """
+    y = 1 / (1 + np.exp(-a * (x[:,0] - b)))
+    return y
+
+
+    # nice visual of effect of changing parameters: https://datascience.oneoffcoder.com/s-curve.html
+def logistic_fun(x, L=1, x_0=0, k=1):
+    """
+    basic math for logistic curve fit, called by curve_fit_func
+    y(t) = c / (1 + a*exp(-b*t)) where t is age and c is the maximum biomass (here replaced c in numerator with 1 since multiply by max biomass)
+    
+    Parameters
+    ----------
+    x : vector of data x values
+    a : [float]
+        a parameter
+    b : [float]
+        b parameter
+    
+    Returns
+    -------
+    vector of y values
+    """
+    y = x[:,1] / (1 + np.exp(-k * (x[:,0] - x_0)))
     return y
 
 
@@ -301,6 +343,68 @@ def getNearbyMatureForestPercentiles(geojson, buffer=20):
 
 
 
+def getWalkerMatureForestPercentiles(geojson):
+    """
+    Take a geojson structure (output from landOS) and get a list of the deciles of max potential C (agb+bgb) in tCO2e/ha
+    From Walker dataset
+    
+    Parameters
+    ----------
+    geojson : [dict]
+               dictionary of shapefile that you get as the output from landOS for the "shapefile"
+    buffer : [float]
+              buffer distance in km (default = 20 km)
+    
+    Returns
+    -------
+    return[0] : biomass (agb+bgb) in tCO2e/ha from 20km buffer at 5%, 10%, 20%, 30%, 40%, 50%, 60%, 70%, 80%, 90%, 95%
+    return[1] : maximum biomass (agb+bgb) in tCO2e/ha from 20km buffer
+    """
+    
+    aoi = ee.FeatureCollection(geojson['features'])
+    
+    ## 1. Find ecoregions that overlap with the AOI
+    ecoregions = ee.FeatureCollection('RESOLVE/ECOREGIONS/2017');
+
+    # Get set of ecoregions that occur in the area of interest and limit distance to no more than 20km away
+    bounds = ee.Geometry(aoi.geometry(maxError=100))
+    buffered = bounds.buffer(distance=1, maxError=1000) #distance=20000, buffer*1000
+    searchAreas = ecoregions.filterBounds(bounds).map(
+                        lambda f: f.intersection(buffered))
+
+
+    ## 2. Within those ecoregions, find "mature forests"
+    #Additional Forest Non/Forest in 20210 from PALSAR
+    forestMask = (ee.ImageCollection("JAXA/ALOS/PALSAR/YEARLY/FNF")
+                        .filterDate('2009-01-01', '2011-12-31')
+                        .first().select('fnf').remap([1],[1],0))
+    
+    # Walker Potential C storage
+    walker_potC = ee.Image('projects/ee-anikastaccone-regua/assets/Base_Pot_AGB_BGB_MgCha_500m')
+
+    # Convert C -> CO2e
+    walker_potC = (walker_potC.select('b1')
+                   .multiply(3.66)
+                   .select([0], ['tCO2e'])) #agb_bgb in tCO2e/ha
+
+    # Mask away non forests and young forests, and then get the pdf
+    featureDeciles = (walker_potC.mask(forestMask)
+                            .reduceRegions(searchAreas,
+                                   ee.Reducer.percentile([5,10,20,30,40,50,60,70,80,90,95,100]),
+                                   scale=100)
+                            ).map(lambda f: ee.Feature(None, f.toDictionary()))
+
+    # Return a cleaned-up response
+    output_dict = _formatDecileResponse(featureDeciles.getInfo()) #could go back to returning the whole dict
+
+    for eco_id, ecozone in output_dict.items():
+        tCO2eha_deciles = ecozone['tCO2e_deciles']
+        tCO2eha_max = ecozone['tCO2e_max']
+        
+    return tCO2eha_deciles, tCO2eha_max    
+
+
+
 
 
 
@@ -332,11 +436,11 @@ def root_shoot_ipcc(lat, lng, veg_type='other broadleaf'):
     """
     
     # load IPCC root to shoot table (from Joe's scripts)
-    root_shoot_ipcc = pd.read_csv('https://raw.githubusercontent.com/Earthshot-Labs/science/master/IPCC_tier_1/ipcc_table_intermediate_files/ipcc_tier1_all.csv?token=GHSAT0AAAAAABQWL3QQJJNMXV3BWEXIE3VIYVTO5UA')
+    root_shoot_ipcc = pd.read_csv('https://raw.githubusercontent.com/Earthshot-Labs/science/master/IPCC_tier_1/prediction/ipcc_table_intermediate_files/ipcc_tier1_all.csv?token=GHSAT0AAAAAABQWL3QREMVXR567IWPOZF22YV5W4YQ')
 
     # open gez2010 shapefile for Global Ecoological Zones
     dir_here = os.getcwd()
-    gez_shp = dir_here + '/model_utilities/gez2010/gez_2010_wgs84.shp'
+    gez_shp = dir_here + '/deepdive_automation/gez2010/gez_2010_wgs84.shp'
     gez_gdf = gpd.read_file(gez_shp)
     
     # Get GEZ
@@ -367,9 +471,12 @@ def root_shoot_ipcc(lat, lng, veg_type='other broadleaf'):
     
 
 
-def curve_fit_func(input_df, d_type, lat, lng, y_max_agb_bgb, rs_break, rs_young=0.285, rs_old=0.285, biomass_to_c=0.47):
+
+
+
+def curve_fit_func(input_df, d_type, curve_type, y_max_agb_bgb, rs_break, rs_young=0.285, rs_old=0.285, biomass_to_c=0.47):
     """
-    function to take dataframe of agb+bgb biomass, location, and constants to execute Chapman Richards curve fitting
+    function to take dataframe of agb+bgb biomass, location, and constants to execute curve fitting
     
     Parameters
     ----------
@@ -378,9 +485,9 @@ def curve_fit_func(input_df, d_type, lat, lng, y_max_agb_bgb, rs_break, rs_young
     d_type : [string]
             'biomass' if input_df contains biomass in t/ha
             'carbon' if input_df contains carbon in t/ha
-    lat : [float]
-            latitude of site in decimal degrees
-    lng : [float]
+    curve_type : [string]
+                'chapman-richards' if want default curve fit
+                'sigmoid' if want sigmoid curve fit
             longitude of site in decimal degrees
     y_max_agb_bgb : [float]
                     maximum biomass from mature forest in tCO2e/ha
@@ -442,14 +549,29 @@ def curve_fit_func(input_df, d_type, lat, lng, y_max_agb_bgb, rs_break, rs_young
 
     # curve fit
     # find parameters k and p
-    params, covar = curve_fit(f=curve_fun, xdata=x_data, ydata=agb_bgb_tco2_ha)
+    if curve_type == 'sigmoid':
+        params, covar = curve_fit(f=sigmoid_fun, xdata=x_data, ydata=agb_bgb_tco2_ha)
+    elif curve_type == 'logistic':
+        L_estimate = agb_bgb_tco2_ha.max()
+        x_0_estimate = np.median(age)
+        k_estimate = 1.0
+        p_0 = [L_estimate, x_0_estimate, k_estimate]
+        params, covar = curve_fit(logistic_fun, x_data, agb_bgb_tco2_ha, p_0, method='dogbox',
+            bounds=((-np.inf,-np.inf,0.1),(np.inf,np.inf,5)))
+    else:
+        params, covar = curve_fit(f=curve_fun, xdata=x_data, ydata=agb_bgb_tco2_ha)
 
     # Generate 100 yr prediction ------------
     x_plot = np.arange(1,101,1).reshape((100,1))
     y_max_array_plot = np.ones_like(x_plot) * y_max_agb_bgb
     x_data_plot = np.concatenate((x_plot, y_max_array_plot), axis=1)
 
-    pred_agb_bgb = curve_fun(x=x_data_plot, k=params[0], p=params[1])
+    if curve_type == 'sigmoid':
+        pred_agb_bgb = sigmoid_fun(x=x_data_plot, a=params[0], b=params[1])
+    elif curve_type == 'logistic':
+                pred_agb_bgb = logistic_fun(x_data_plot, L=params[0], x_0=params[1], k=params[2])
+    else:
+        pred_agb_bgb = curve_fun(x=x_data_plot, k=params[0], p=params[1])
 
     # Make plot ----------------
     c_fig, ax = plt.subplots(figsize=(15,5))
@@ -465,7 +587,6 @@ def curve_fit_func(input_df, d_type, lat, lng, y_max_agb_bgb, rs_break, rs_young
                             'tCO2/ha': pred_agb_bgb.reshape(1,100).tolist()[0]})
 
     return c_fig, c_curve
-
 
 
 # chave allometry if you have height data
@@ -535,3 +656,101 @@ def chave_allometry_noheight(DBH, WD, ftr_collection="", lat=np.nan, lng=np.nan)
     # calculate biomass
     AGB_kg = np.exp(-1.803 - 0.976*E + 0.976 * np.log(WD) + 2.673 * np.log(DBH)- 0.0299*(np.log(DBH)**2))
     return AGB_kg
+
+
+
+
+def _expandIPCC(years, r0, r20, k20, kmax, root_shoot_break, rs_young, rs_old):
+    # Aboveground Biomass (proposed fix above)
+    ## Biomass = np.minimum(k20, years*r0) + np.maximum(0, np.minimum(kmax, (years-20)*r20))
+    year20cap = np.minimum(k20, 20*r0)
+    yearsPast20 = np.maximum(0, years-20)
+    Biomass = np.minimum(year20cap, years*r0) + yearsPast20*r20
+    Biomass = np.minimum(kmax, Biomass)
+
+    # Add belowground biomass
+    Biomass *= 1 + rs_old + (rs_young-rs_old)*(Biomass<root_shoot_break)
+    
+    # Convert from dry biomass -> Carbon -> CO2e
+    Biomass *= 0.47*3.67
+    Biomass = np.round(Biomass,2)
+    
+    return Biomass
+    
+
+def PredictIPCC(polygonData=None, ecozone=None, continent=None, forest_type=None, yearStart = 0, yearEnd = 30):
+    ret = { 'valid': 1,
+            'msg': '',
+            'ecozone': '',
+            'continent': '',
+            'start_year': np.nan,
+            'end_year': np.nan,
+            'units': 'tCO2e per reforestable ha',
+            'predictions': {},
+            }
+
+    # Determine ecozone and continent, either from boundaries or passed to function
+    if not ecozone or not continent:
+        if not polygonData:
+            ret['valid'] = 0
+            ret['msg'] = "Parcel boundaries or both ecozone and continent must be specified"
+            return ret
+        
+        zone = _getEcozoneFromPolygons(polygonData)
+        ecozone = zone['ecozone'].lower()
+        continent = zone['continent'].lower()
+    
+    
+    #Read datafile
+    ipcc = pd.read_csv('./data/IPCC_Tier1_parameters.csv')
+    params = ipcc.loc[(ipcc['ecozone']==ecozone.lower()) & 
+                      (ipcc['continent']==continent.lower())]
+    
+    # Return if Invalid Ecozone / Contintent combination
+    if params.empty:
+        ret['valid'] = 0
+        ret['msg'] = "Ecozone and Continent combination not found"
+        return ret
+    
+    # Select forest type if provided
+    if forest_type:
+        params = params.loc[params['forest_type']==forest_type.lower()]
+        
+    # Return if forest type not found
+    if params.empty:
+        ret['valid'] = 0
+        ret['msg'] = f"No forest type '{forest_type}' available for {ecozone} and {continent}"
+        return ret
+    
+    
+    # Calculate low, median, and high biomass for specified year range for each forest type
+    ret = { 'valid': 1,
+            'msg': '',
+            'ecozone': ecozone,
+            'continent': continent,
+            'start_year': yearStart,
+            'end_year': yearEnd,
+            'units': 'tCO2e per reforestable ha',
+            'predictions': {},
+       }
+
+    
+    years = np.array(range(yearStart, yearEnd+1))
+    for r in params.to_dict('records'):
+
+        Med = _expandIPCC(years, r['r0'], r['r20'], r['K20'], r['Kmax'],
+                              r['root_shoot_break'], r['rs_young'], r['rs_old'] )
+        Low = _expandIPCC(years, r['r0_low'], r['r20_low'], r['K20_low'], r['Kmax_low'],
+                              r['root_shoot_break'], r['rs_young'], r['rs_old'] )
+        High = _expandIPCC(years, r['r0_high'], r['r20_high'], r['K20_high'], r['Kmax_high'],
+                              r['root_shoot_break'], r['rs_young'], r['rs_old'] )
+        
+        ret['predictions'][r['forest_type']]= {
+                        'biomass': Med,
+                        'biomassLow': Low,
+                        'biomassHigh': High,
+                        'uncertainty_method_cap': r['cap_uncertainty_type'],
+                        'uncertainty_method_rate':r['rate_uncertainty_type']
+                    }
+        
+    return ret    
