@@ -531,3 +531,335 @@ def curve_fit_set_ymax_deciles(input_df, y_max_agb_bgb_list, years_pred=100,
     df_out.plot(y=[0.025, 0.975], x='Age', linestyle='--', ax=ax, label=['2.5 %ile','97.5 %ile'])
             
     return c_fig, df_out, df_mc    
+
+
+
+from model_utilities.curve_fitting import chapman_richards_set_ymax
+
+def curve_fit_set_ymax_local_deciles_c_freep(input_df, y_max_agb_bgb_list, years_pred=100, 
+                                             curve_fun=chapman_richards_set_ymax,
+                                             n_mc=1000, plot_mc=True, title_var='AGB+BGB tCO2e/ha'):
+    """
+    function to take agb+bgb observations, fit a curve to them, and predict an interpolated/extrapolated
+    time series. Assumes the ymax parameter will be specified (this could be made more general to handle
+    the case where it's not).
+    
+    Parameters
+    ----------
+    input_df : [pandas dataframe]
+                pandas dataframe with column 'agb_bgb_tCO2e_ha' for the biomass data at location
+    y_max_agb_bgb : [float]
+                    maximum biomass from mature forest in tCO2e/ha
+    years_pred : [integer]
+                 length of time series to predict (years)
+    curve_fun : [function]
+                the curve fit function to use
+                chapman_richards_set_ymax
+                logistic_set_ymax
+    n_mc : [integer]
+           number of monte carlo ensemble members
+
+    To do: color plot by author column
+
+    Returns
+    -------
+    output[0] : plot of chapman richards curve with data points displayed
+    output[1] : table of projected C accumulation with columns age (1-100) and tCO2e/ha
+    output[2] : parameters for standard curve fit
+    """
+    from scipy.optimize import curve_fit
+    from bisect import bisect
+    
+    # prepare data for curve fit -----------
+    age = np.array(input_df['age']).reshape((input_df['age'].shape[0],1))
+    agb_bgb_tco2_ha = input_df['agb_bgb_tCO2e_ha']
+    
+    x_plot = np.arange(1,years_pred+1,1).reshape((years_pred,1))
+    mid_point = round(len(y_max_agb_bgb_list) / 2)
+                   
+    # Get cutoffs for coloring data sources of ensemble members
+    if len(y_max_agb_bgb_list) > 1:
+        cutoffs = []
+        for j in range(0, len(y_max_agb_bgb_list)):
+            leni = len(y_max_agb_bgb_list[j])  
+            if j == 0:
+                cutoffs.append(leni)
+            else:
+                cutoffs.append(cutoffs[j-1] + leni)
+        y_max_agb_bgb_list_f = np.hstack(y_max_agb_bgb_list)
+    else:
+        cutoffs = [1]
+        y_max_agb_bgb_list_f = y_max_agb_bgb_list
+    
+    
+    
+    # Set up plot ----------------
+    c_fig, ax = plt.subplots(figsize=(15,5))
+    ax.set_title(title_var, fontsize=15)
+    ax.set_ylabel('AGB+BGB estimate (tCO2e/ha)', fontsize=15)
+    ax.set_xlabel('Age', fontsize=15)
+    ax.set_ylim(-10, np.nanmax(y_max_agb_bgb_list_f)+50)
+                   
+    for i in range(0, len(y_max_agb_bgb_list_f)):
+    #for i in range(0, len(y_max_agb_bgb_list)): 
+        # extract which data source maximum came from
+        data_num = bisect(cutoffs, i)
+        if (data_num > len(cutoffs)):
+            data_num = len(cutoffs)
+        data_num = 'source' + str(data_num)
+             
+        #y_max_agb_bgb = y_max_agb_bgb_list[i]
+        y_max_agb_bgb = y_max_agb_bgb_list_f[i]
+        y_max_array = np.ones_like(age) * y_max_agb_bgb
+        x_data = np.concatenate((age, y_max_array), axis=1)
+    
+        # curve fit
+#         params, covar = curve_fit(f=chapman_richards_set_ymax_p, 
+#                                        xdata=x_data, 
+#                                        ydata=agb_bgb_tco2_ha,
+#                                        bounds=((0),(np.inf)))
+        params, covar = curve_fit(f=chapman_richards_set_ymax, 
+                                      xdata=x_data, 
+                                      ydata=agb_bgb_tco2_ha,
+                                      bounds=((0,0), (np.inf,3)))
+    
+        # Generate prediction
+        y_max_array_plot = np.ones_like(x_plot) * y_max_agb_bgb
+        x_data_plot = np.concatenate((x_plot, y_max_array_plot), axis=1)
+
+        #pred_agb_bgb = chapman_richards_set_ymax_p(x=x_data_plot, k=params)
+        pred_agb_bgb = chapman_richards_set_ymax(x=x_data_plot, k=params[0], p=params[1])
+        
+        #Plot as we go
+        #Looks like all are included
+#         ax.plot(x_plot, pred_agb_bgb, label=f'source_{data_num}_percentileix{i}')
+        
+        if i == mid_point:
+            # output predictions
+            df_out = pd.DataFrame({'Age': x_plot.reshape(1, years_pred).tolist()[0],
+                                   'tCO2/ha': pred_agb_bgb.reshape(1, years_pred).tolist()[0]})
+        
+        if n_mc > 0:
+        # Make Monte Carlo ensemble, get median and 95% CI bounds
+            sample = np.random.default_rng().multivariate_normal(mean=params, cov=covar, size=n_mc).T
+            #keep only samples that fit bounds
+            ps = sample[1, :]
+            to_keep = np.where((ps <= 3) & (ps >= 0))
+            sample = sample[:,list(to_keep[0])]
+            
+            series_list = []
+            counter = 1
+
+            #for k in (sample[0, :]):
+            for k, p in zip(sample[0, :], sample[1, :]):
+                #pred = chapman_richards_set_ymax_p(x=x_data_plot, k=k)
+                pred = chapman_richards_set_ymax(x=x_data_plot, k=k, p=p)
+                series_list.append(pd.Series(data=pred, name=f'sim_{i}_{counter}_{data_num}'))
+                counter += 1
+            df_mc_here = pd.concat(series_list, axis=1)
+        if i == 0:
+            df_mc = df_mc_here
+        else:
+            df_mc = pd.concat([df_mc, df_mc_here], axis=1)
+    
+
+    df_out[[0.025, 0.4, 0.5, 0.80, 0.975]] = df_mc.quantile(q=[0.025, 0.4, 0.5, 0.80, 0.975], axis=1).transpose()
+
+
+    #ax.set_ylim(-10, df_mc.to_numpy().max()+50)
+    if plot_mc == True:
+        if n_mc > 0:
+            df_mc_plot = df_mc.copy()
+            #Random sample of simluations since matplotlib can't show so many (800 is enough?)
+            cols_to_plot = random.sample(range(df_mc_plot.shape[1]), 800)
+            df_mc_plot = df_mc_plot.iloc[:,cols_to_plot]
+            color_list = ['grey','#bab86c','#6cbab8']  #6e7f80, 536878 #
+            for ic in range(0,len(y_max_agb_bgb_list)):
+                cols_plot_here = [col for col in df_mc_plot.columns if '_source'+str(ic) in col]
+                plt.plot(x_plot, df_mc_plot[cols_plot_here], alpha=0.1, color=color_list[ic])
+            #plt.plot(x_plot, df_mc_plot, alpha=0.05, color='grey')
+                   
+    ax.plot(x_plot, df_out['tCO2/ha'], color='black',linewidth=1)
+    sns.scatterplot(x=input_df['age'], y=input_df['agb_bgb_tCO2e_ha'], hue=input_df['source'], ax=ax)
+    #ax.scatter(x=input_df['age'], y=input_df['agb_bgb_tCO2e_ha'])
+    df_out.plot(y=[0.025, 0.5, 0.975], x='Age', linestyle='--', ax=ax, label=['2.5 %ile','50 %ile','97.5 %ile'])
+#     plt.legend()
+    plt.legend(bbox_to_anchor=(1.05, 1.0), loc='upper left')
+
+            
+    return c_fig, df_out, df_mc
+
+
+    # chapman richards curve fit
+def chapman_richards_set_ymax_p(x, k):
+    """
+    basic math for chapman richards curve fit with specified ymax
+
+    Parameters
+    ----------
+    x : n by 2 array of independent variables. First column is time in years, second column is
+        constant value of ymax for the site for all years
+    k : [float]
+        k parameter
+    p : [float]
+        p parameter
+    
+    Returns
+    -------
+    vector of y values
+    """
+    y = x[:,1] * np.power( (1 - np.exp(-k * x[:,0])), 3)
+    return y
+
+def curve_fit_set_ymax_local_deciles_c(input_df, y_max_agb_bgb_list, years_pred=100, 
+                                       curve_fun=chapman_richards_set_ymax_p,
+                                       n_mc=1000, plot_mc=True, title_var='AGB+BGB tCO2e/ha'):
+    """
+    function to take agb+bgb observations, fit a curve to them, and predict an interpolated/extrapolated
+    time series. Assumes the ymax parameter will be specified (this could be made more general to handle
+    the case where it's not).
+    
+    Parameters
+    ----------
+    input_df : [pandas dataframe]
+                pandas dataframe with column 'agb_bgb_tCO2e_ha' for the biomass data at location
+    y_max_agb_bgb : [float]
+                    maximum biomass from mature forest in tCO2e/ha
+    years_pred : [integer]
+                 length of time series to predict (years)
+    curve_fun : [function]
+                the curve fit function to use
+                chapman_richards_set_ymax
+                logistic_set_ymax
+    n_mc : [integer]
+           number of monte carlo ensemble members
+
+    To do: color plot by author column
+
+    Returns
+    -------
+    output[0] : plot of chapman richards curve with data points displayed
+    output[1] : table of projected C accumulation with columns age (1-100) and tCO2e/ha
+    output[2] : parameters for standard curve fit
+    """
+    from scipy.optimize import curve_fit
+    from bisect import bisect
+    
+    # prepare data for curve fit -----------
+    age = np.array(input_df['age']).reshape((input_df['age'].shape[0],1))
+    agb_bgb_tco2_ha = input_df['agb_bgb_tCO2e_ha']
+    
+    x_plot = np.arange(1,years_pred+1,1).reshape((years_pred,1))
+    mid_point = round(len(y_max_agb_bgb_list) / 2)
+                   
+    # Get cutoffs for coloring data sources of ensemble members
+    if len(y_max_agb_bgb_list) > 1:
+        cutoffs = []
+        for j in range(0, len(y_max_agb_bgb_list)):
+            leni = len(y_max_agb_bgb_list[j])  
+            if j == 0:
+                cutoffs.append(leni)
+            else:
+                cutoffs.append(cutoffs[j-1] + leni)
+        y_max_agb_bgb_list_f = np.hstack(y_max_agb_bgb_list)
+    else:
+        cutoffs = [1]
+        y_max_agb_bgb_list_f = y_max_agb_bgb_list
+    
+#     cutoffs = []
+#     for j in range(0, len(y_max_agb_bgb_list)):
+#         leni = len(y_max_agb_bgb_list[j])  
+#         if j == 0:
+#             cutoffs.append(leni)
+#         else:
+#             cutoffs.append(cutoffs[j-1] + leni)
+    
+#     y_max_agb_bgb_list_f = np.hstack(y_max_agb_bgb_list)
+                   
+    for i in range(0, len(y_max_agb_bgb_list_f)):
+    #for i in range(0, len(y_max_agb_bgb_list)): 
+        # extract which data source maximum came from
+        data_num = bisect(cutoffs, i)
+        if (data_num > len(cutoffs)):
+            data_num = len(cutoffs)
+        data_num = 'source' + str(data_num)
+             
+        #y_max_agb_bgb = y_max_agb_bgb_list[i]
+        y_max_agb_bgb = y_max_agb_bgb_list_f[i]
+        y_max_array = np.ones_like(age) * y_max_agb_bgb
+        x_data = np.concatenate((age, y_max_array), axis=1)
+    
+        # curve fit
+        params, covar = curve_fit(f=chapman_richards_set_ymax_p, 
+                                       xdata=x_data, 
+                                       ydata=agb_bgb_tco2_ha,
+                                       bounds=((0),(np.inf)))
+        #params, covar = curve_fit(f=chapman_richards_set_ymax, 
+        #                               xdata=x_data, 
+        #                               ydata=agb_bgb_tco2_ha,
+        #                               bounds=((0,2.99),(np.inf,3.01)))
+    
+        # Generate prediction
+        y_max_array_plot = np.ones_like(x_plot) * y_max_agb_bgb
+        x_data_plot = np.concatenate((x_plot, y_max_array_plot), axis=1)
+    
+        pred_agb_bgb = chapman_richards_set_ymax_p(x=x_data_plot, k=params)
+        #pred_agb_bgb = chapman_richards_set_ymax(x=x_data_plot, k=params[0], p=params[1])
+        
+        if i == mid_point:
+            # output predictions
+            df_out = pd.DataFrame({'Age': x_plot.reshape(1, years_pred).tolist()[0],
+                                   'tCO2/ha': pred_agb_bgb.reshape(1, years_pred).tolist()[0]})
+        
+        if n_mc > 0:
+        # Make Monte Carlo ensemble, get median and 95% CI bounds
+            sample = np.random.default_rng().multivariate_normal(mean=params, cov=covar, size=n_mc).T
+            series_list = []
+            counter = 1
+
+            for k in (sample[0, :]):
+            #for k, p in zip(sample[0, :], sample[1, :]):
+                pred = chapman_richards_set_ymax_p(x=x_data_plot, k=k)
+                #pred = chapman_richards_set_ymax(x=x_data_plot, k=k, p=p)
+                series_list.append(pd.Series(data=pred, name=f'sim_{i}_{counter}_{data_num}'))
+                counter += 1
+            df_mc_here = pd.concat(series_list, axis=1)
+        if i == 0:
+            df_mc = df_mc_here
+        else:
+            df_mc = pd.concat([df_mc, df_mc_here], axis=1)
+    
+
+    df_out[[0.025, 0.5, 0.975]] = df_mc.quantile(q=[0.025, 0.5, 0.975], axis=1).transpose()
+
+    # Make plot ----------------
+    c_fig, ax = plt.subplots(figsize=(15,5))
+
+    ax.set_title(title_var, fontsize=15)
+    ax.set_ylabel('AGB+BGB estimate (tCO2e/ha)', fontsize=15)
+    ax.set_xlabel('Age', fontsize=15)
+    
+    ax.set_ylim(-10, np.nanmax(y_max_agb_bgb_list_f)+50)
+    #ax.set_ylim(-10, df_mc.to_numpy().max()+50)
+    if plot_mc == True:
+        if n_mc > 0:
+            df_mc_plot = df_mc.copy()
+            cols_to_plot = random.sample(range(df_mc_plot.shape[1]), 800)
+            df_mc_plot = df_mc_plot.iloc[:,cols_to_plot]
+            color_list = ['grey','#bab86c','#6cbab8']  #6e7f80, 536878 #
+            for ic in range(0,len(y_max_agb_bgb_list)):
+                cols_plot_here = [col for col in df_mc_plot.columns if '_source'+str(ic) in col]
+                plt.plot(x_plot, df_mc_plot[cols_plot_here], alpha=0.1, color=color_list[ic])
+            #plt.plot(x_plot, df_mc_plot, alpha=0.05, color='grey')
+            pop_a = mpatches.Patch(color=color_list[0], label='Max 0')
+            pop_b = mpatches.Patch(color=color_list[1], label='Max 1')
+            pop_c = mpatches.Patch(color=color_list[2], label='Max 2')
+            plt.legend(handles=[pop_a,pop_b,pop_c], loc=4)
+                   
+    ax.plot(x_plot, df_out['tCO2/ha'], color='black', linewidth=1, label='middle curve')
+    sns.scatterplot(x=input_df['age'], y=input_df['agb_bgb_tCO2e_ha'], hue=input_df['source'], ax=ax)
+    df_out.plot(y=[0.025, 0.975], x='Age', linestyle='--', ax=ax, label=['2.5 %ile','97.5 %ile'])
+    
+    plt.legend(bbox_to_anchor=(1, 1.0), loc='upper left')
+            
+    return c_fig, df_out, df_mc    
