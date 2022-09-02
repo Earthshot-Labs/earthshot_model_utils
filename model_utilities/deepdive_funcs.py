@@ -251,7 +251,7 @@ def mature_biomass_spawn(lat, lng, buffer=20):
 
 # maximum biomass using Joe's deciles method
 
-def _formatDecileResponse(features):
+def _formatDecileResponse_OLD(features):
     """
     Private function making data out of EE more accessible
     """
@@ -273,7 +273,33 @@ def _formatDecileResponse(features):
                 }
                 for p in [f['properties'] for f in features['features']]
             }
-    
+ 
+
+
+def _formatDecileResponse(features):
+    """
+    Private function making data out of EE more accessible
+    """
+    return {p['ECO_ID']: {
+                'area': p['SHAPE_AREA'],
+                'biome_num': p['BIOME_NUM'],
+                'biome_name': p['BIOME_NAME'],
+                'eco_num': p['ECO_ID'],
+                'eco_name': p['ECO_NAME'],
+                'eco_biome_code': p['ECO_BIOME_'],
+                'realm': p['REALM'],
+                'nature_needs_half': p['NNH'],
+                'tCO2e_decile_labels': [0,10,20,30,40,50,60,70,80,90,100],
+                'tCO2e_deciles': [round(d,2) for d in
+                                 [p['p0'], p['p10'],p['p20'],p['p30'],
+                                  p['p40'],p['p50'],p['p60'],p['p70'],
+                                  p['p80'],p['p90'],p['p100']]],
+                'tCO2e_max': round(p['p100'],2)
+                }
+                for p in [f['properties'] for f in features['features']]
+            }
+
+
 def getNearbyMatureForestPercentiles(geojson, buffer=20):
     """
     Take a geojson structure (output from landOS) and get a list of the deciles of biomass (agb+bgb) in tCO2e/ha
@@ -328,7 +354,7 @@ def getNearbyMatureForestPercentiles(geojson, buffer=20):
     # Mask away non forests and young forests, and then get the pdf
     featureDeciles = (biomass.mask(forestMask).mask(matureForest)
                             .reduceRegions(searchAreas,
-                                   ee.Reducer.percentile([5,10,20,30,40,50,60,70,80,90,95,100]),
+                                   ee.Reducer.percentile([0,10,20,30,40,50,60,70,80,90,100]),
                                    scale=100)
                             ).map(lambda f: ee.Feature(None, f.toDictionary()))
 
@@ -343,24 +369,7 @@ def getNearbyMatureForestPercentiles(geojson, buffer=20):
 
 
 
-def getWalkerMatureForestPercentiles(geojson, buffer=20):
-    """
-    Take a geojson structure (output from landOS) and get a list of the deciles of max potential C (agb+bgb) in tCO2e/ha
-    From Walker dataset
-    
-    Parameters
-    ----------
-    geojson : [dict]
-               dictionary of shapefile that you get as the output from landOS for the "shapefile"
-    buffer : [float]
-              buffer distance in km (default = 20 km)
-    
-    Returns
-    -------
-    return[0] : biomass (agb+bgb) in tCO2e/ha from 20km buffer at 5%, 10%, 20%, 30%, 40%, 50%, 60%, 70%, 80%, 90%, 95%
-    return[1] : maximum biomass (agb+bgb) in tCO2e/ha from 20km buffer
-    """
-    
+def getWalkerValues(geojson):    
     aoi = ee.FeatureCollection(geojson['features'])
     
     ## 1. Find ecoregions that overlap with the AOI
@@ -368,10 +377,8 @@ def getWalkerMatureForestPercentiles(geojson, buffer=20):
 
     # Get set of ecoregions that occur in the area of interest and limit distance to no more than 20km away
     bounds = ee.Geometry(aoi.geometry(maxError=100))
-    buffered = bounds.buffer(distance=buffer*1000, maxError=1000) #distance=20000
     searchAreas = ecoregions.filterBounds(bounds).map(
-                        lambda f: f.intersection(buffered))
-
+                        lambda f: f.intersection(bounds))
 
     ## 2. Within those ecoregions, find "mature forests"
     #Additional Forest Non/Forest in 20210 from PALSAR
@@ -380,28 +387,22 @@ def getWalkerMatureForestPercentiles(geojson, buffer=20):
                         .first().select('fnf').remap([1],[1],0))
     
     # Walker Potential C storage
-    walker_potC = ee.Image('projects/ee-anikastaccone-regua/assets/Base_Pot_AGB_BGB_MgCha_500m')
+    walker_potC = ee.Image('projects/earthengine-legacy/assets/users/steve_klosterman/Walker_et_al/Base_Pot_AGB_BGB_MgCha_500m')
 
     # Convert C -> CO2e
     walker_potC = (walker_potC.select('b1')
                    .multiply(3.66)
                    .select([0], ['tCO2e'])) #agb_bgb in tCO2e/ha
-
-    # Mask away non forests and young forests, and then get the pdf
-    featureDeciles = (walker_potC.mask(forestMask)
-                            .reduceRegions(searchAreas,
-                                   ee.Reducer.percentile([5,10,20,30,40,50,60,70,80,90,95,100]),
-                                   scale=100)
-                            ).map(lambda f: ee.Feature(None, f.toDictionary()))
-
-    # Return a cleaned-up response
-    output_dict = _formatDecileResponse(featureDeciles.getInfo()) #could go back to returning the whole dict
-
-    for eco_id, ecozone in output_dict.items():
-        tCO2eha_deciles = ecozone['tCO2e_deciles']
-        tCO2eha_max = ecozone['tCO2e_max']
+    
+    featureValues = walker_potC.sampleRegions(bounds).getInfo()
+    
+    test = pd.DataFrame(featureValues['features'])
+    test1 = pd.concat([test.drop(['properties'], axis=1), test['properties'].apply(pd.Series)], axis=1)
+    test1 = test1[test1.tCO2e > 0]
+    test1_pctile = np.percentile(test1['tCO2e'], [0, 10, 20, 30, 40, 50, 60, 70, 80, 90, 100])
         
-    return tCO2eha_deciles, tCO2eha_max    
+    #return tCO2eha_deciles, tCO2eha_max 
+    return test1, test1_pctile
 
 
 
@@ -745,3 +746,137 @@ def PredictIPCC(polygonData=None, ecozone=None, continent=None, forest_type=None
                     }
         
     return ret    
+
+
+
+def getWalkerValues(geojson):    
+    aoi = ee.FeatureCollection(geojson['features'])
+    
+    ## 1. Find ecoregions that overlap with the AOI
+    ecoregions = ee.FeatureCollection('RESOLVE/ECOREGIONS/2017');
+
+    # Get set of ecoregions that occur in the area of interest and limit distance to no more than 20km away
+    bounds = ee.Geometry(aoi.geometry(maxError=100))
+    searchAreas = ecoregions.filterBounds(bounds).map(
+                        lambda f: f.intersection(bounds))
+
+    ## 2. Within those ecoregions, find "mature forests"
+    #Additional Forest Non/Forest in 20210 from PALSAR
+    forestMask = (ee.ImageCollection("JAXA/ALOS/PALSAR/YEARLY/FNF")
+                        .filterDate('2009-01-01', '2011-12-31')
+                        .first().select('fnf').remap([1],[1],0))
+    
+    # Walker Potential C storage
+    walker_potC = ee.Image('projects/earthengine-legacy/assets/users/steve_klosterman/Walker_et_al/Base_Pot_AGB_BGB_MgCha_500m')
+
+    # Convert C -> CO2e
+    walker_potC = (walker_potC.select('b1')
+                   .multiply(3.66)
+                   .select([0], ['tCO2e'])) #agb_bgb in tCO2e/ha
+    
+    featureValues = walker_potC.sampleRegions(bounds).getInfo()
+    
+    test = pd.DataFrame(featureValues['features'])
+    test1 = pd.concat([test.drop(['properties'], axis=1), test['properties'].apply(pd.Series)], axis=1)
+    test1 = test1[test1.tCO2e > 0]
+    test1_pctile = np.percentile(test1['tCO2e'], [0, 10, 20, 30, 40, 50, 60, 70, 80, 90, 100])
+        
+    #return tCO2eha_deciles, tCO2eha_max 
+    return test1, test1_pctile
+
+
+
+def _formatDecileResponse(features):
+    """
+    Private function making data out of EE more accessible
+    """
+    return {p['ECO_ID']: {
+                'area': p['SHAPE_AREA'],
+                'biome_num': p['BIOME_NUM'],
+                'biome_name': p['BIOME_NAME'],
+                'eco_num': p['ECO_ID'],
+                'eco_name': p['ECO_NAME'],
+                'eco_biome_code': p['ECO_BIOME_'],
+                'realm': p['REALM'],
+                'nature_needs_half': p['NNH'],
+                'tCO2e_decile_labels': [0,10,20,30,40,50,60,70,80,90,100],
+                'tCO2e_deciles': [round(d,2) for d in
+                                 [p['p0'], p['p10'],p['p20'],p['p30'],
+                                  p['p40'],p['p50'],p['p60'],p['p70'],
+                                  p['p80'],p['p90'],p['p100']]],
+                'tCO2e_max': round(p['p100'],2)
+                }
+                for p in [f['properties'] for f in features['features']]
+            }
+
+
+
+def getNearbyMatureForestPercentiles(geojson, buffer=20):
+    """
+    Take a geojson structure (output from landOS) and get a list of the deciles of biomass (agb+bgb) in tCO2e/ha
+    
+    Parameters
+    ----------
+    geojson : [dict]
+               dictionary of shapefile that you get as the output from landOS for the "shapefile"
+    buffer : [float]
+              buffer distance in km (default = 20 km)
+    
+    Returns
+    -------
+    return[0] : biomass (agb+bgb) in tCO2e/ha from 20km buffer at 5%, 10%, 20%, 30%, 40%, 50%, 60%, 70%, 80%, 90%, 95%
+    return[1] : maximum biomass (agb+bgb) in tCO2e/ha from 20km buffer
+    """
+    
+    aoi = ee.FeatureCollection(geojson['features'])
+    
+    ## 1. Find ecoregions that overlap with the AOI
+    ecoregions = ee.FeatureCollection('RESOLVE/ECOREGIONS/2017');
+
+    # Get set of ecoregions that occur in the area of interest and limit distance to no more than 20km away
+    bounds = ee.Geometry(aoi.geometry(maxError=100))
+    buffered = bounds.buffer(distance=buffer*1000, maxError=1000) #distance=20000
+    searchAreas = ecoregions.filterBounds(bounds).map(
+                        lambda f: f.intersection(buffered))
+
+
+    ## 2. Within those ecoregions, find "mature forests"
+    #Additional Forest Non/Forest in 20210 from PALSAR
+    forestMask= (ee.ImageCollection("JAXA/ALOS/PALSAR/YEARLY/FNF")
+                        .filterDate('2009-01-01', '2011-12-31')
+                        .first().select('fnf').remap([1],[1],0))
+
+    #Forest Age as UInt8, 'old growth'==255
+    forestAge = ee.Image("projects/es-gis-resources/assets/forestage").select([0], ['forestage']);
+
+    # Find forests that are 50 years old, or at least older than 90% of forests in the ecoregion
+    matureForest = forestAge.gte(
+                        forestAge.reduceRegions(searchAreas, ee.Reducer.percentile([90]))
+                        .reduceToImage(['p90'], 'first')
+                        .min(50)
+                    )
+
+    ## 3. Get the distribution of biomass as deciles of those mature forests
+    #Biomass - Spawn dataset: https://www.nature.com/articles/s41597-020-0444-4
+    biomass = ee.ImageCollection("NASA/ORNL/biomass_carbon_density/v1").first()
+    biomass = (biomass.select('agb').add(biomass.select('bgb'))
+                    .multiply(3.66).select([0], ['tCO2e'])) #agb_bgb in tCO2e/ha
+
+    # Mask away non forests and young forests, and then get the pdf
+    featureDeciles = (biomass.mask(forestMask).mask(matureForest)
+                            .reduceRegions(searchAreas,
+                                   ee.Reducer.percentile([0,10,20,30,40,50,60,70,80,90,100]),
+                                   scale=100)
+                            ).map(lambda f: ee.Feature(None, f.toDictionary()))
+
+    # Return a cleaned-up response
+    output_dict = _formatDecileResponse(featureDeciles.getInfo()) #could go back to returning the whole dict
+
+    for eco_id, ecozone in output_dict.items():
+        tCO2eha_deciles = ecozone['tCO2e_deciles']
+        tCO2eha_max = ecozone['tCO2e_max']
+        
+    return tCO2eha_deciles, tCO2eha_max
+
+
+    
