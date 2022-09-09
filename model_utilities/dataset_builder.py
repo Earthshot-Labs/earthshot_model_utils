@@ -23,11 +23,7 @@ def create_mature_forest_biomass_layer(export_layer=False):
     mf_min_age = 50  # in years
     mfb_project_distance_to_forest_change = 500  # in meters
     mfb_distance_to_roads = 1000  # in meters
-    mfb_region_map = ee.Geometry.Polygon([[[-168.89638385228787,-61.22283125956169],
-        [188.99424114771213,-61.22283125956169],
-        [188.99424114771213,83.26616044597048],
-        [-168.89638385228787,83.26616044597048],
-        [-168.89638385228787,-61.22283125956169]]])  # globe
+    mfb_region_map = ee.FeatureCollection('projects/ee-margauxmasson21-shapefiles/assets/world_rectangle').geometry()
     mfb_description = 'Biomass_AGB_tCO2_mature_forests'
     mfb_scale = 100
     mfb_asset_name = f'projects/ee-mmf-mature-forest-biomass/assets/mature_forest_{mfb_project_date_range[0][0:4]}_AGB_tco2_scale_{mfb_scale}'
@@ -110,8 +106,8 @@ if __name__ == "__main__":
 
     print("====== Dataset Builder ======")
     do_create_mature_forest_biomass_layer = True
-    export_mature_forest_biomass_layer = True
+    do_export_mature_forest_biomass_layer_as_asset = True  # export to an ee asset: this takes a very long time
     print('\nCreating Mature Forest Biomass Layer...')
-    mature_forest_biomass_layer = create_mature_forest_biomass_layer(export_layer=export_mature_forest_biomass_layer)
+    mature_forest_biomass_layer = create_mature_forest_biomass_layer(export_layer=do_export_mature_forest_biomass_layer_as_asset)
     print(mature_forest_biomass_layer.getInfo())
-    print(f'\nMature Forest Biomass Layer created successfully. export_layer was set to: {export_mature_forest_biomass_layer}')
+    print(f'\nMature Forest Biomass Layer created successfully. export_layer was set to: {do_export_mature_forest_biomass_layer_as_asset}')
