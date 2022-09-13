@@ -18,6 +18,7 @@ def chapman_richards_set_ymax(x, k, p):
     -------
     vector of y values
     """
+    #TODO: use different exponent notation
     y = x[: ,1] * np.power( (1 - np.exp(-k * x[: ,0])), p)
     return y
 
@@ -38,5 +39,6 @@ def chapman_richards_set_ymax_and_p(x, k):
     -------
     vector of y values
     """
+    # TODO: use different exponent notation
     y = x[: ,1] * np.power( (1 - np.exp(-k * x[: ,0])), x[: ,2])
     return y
