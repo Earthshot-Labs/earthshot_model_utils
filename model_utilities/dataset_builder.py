@@ -300,7 +300,7 @@ class EEImageBuilder():
         # Looping through all features from the shapefile (=grids if using a gridded shapefile)
         for i in tqdm(range(nb_features)):
             test = self.image.clip(list_features_assets[i]['geometry'])
-            self.export_tiles_to_drive(test, region=ee.Geometry(list_features_assets[i]['geometry']),
+            self.export_tiles_to_drive(test.float(), region=ee.Geometry(list_features_assets[i]['geometry']),
                                        name_output_google_drive_folder=name_output_google_drive_folder,
                                        index=i, scale=scale, maxPixels=maxPixels)
 
