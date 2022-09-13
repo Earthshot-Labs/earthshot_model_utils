@@ -1,6 +1,7 @@
 #TODO: testing
 
 import ee
+from tqdm import tqdm
 
 class EEImageBuilder():
 
@@ -170,10 +171,138 @@ class EEImageBuilder():
         # and buffer and ones elsewhere
         0
 
-    def tile_and_csv_export(self):
-        #TODO
-        0
+    def load_ee_asset_shapefile(self, shp_asset_path):
+        """
+        Load the ee shapefile provided.
 
+        Parameters
+        ----------
+        shp_asset_path: ee asset gridded shapefile (ex: 'projects/ee-margauxmasson21-shapefiles/assets/latin_america_gridded_5000km2')
+        -------
+
+        Returns
+        ----------
+        nb_features: number of features in the shapefile (eg: number of grids)
+        list_features_assets: list of all the features (grids) from the shapefile
+        -------
+        """
+        ###### Loading shapefile asset ######
+        try:
+            # Loading the shapefile that was uploaded as a GEE asset -- we load the asset as a FeatureCollection
+            country_asset = ee.FeatureCollection(shp_asset_path)
+            # nb_features = number of grids in the shapefile
+            nb_features = country_asset.size().getInfo()
+            # Converting FeatureCollection to python list because it crashes when query > 5000 elements
+            list_features_assets = country_asset.toList(nb_features).getInfo()
+            print(f"Geometry number of features: {nb_features}")
+        except:
+            print(f"Error when loading FeatureCollection: {shp_asset_path}.")
+            exit()
+
+        return nb_features, list_features_assets
+
+    def export_samples_to_drive(self, samples, index, name_google_drive_folder, numPixels, scale):
+        """
+        Export table to Google Drive
+        
+        Inputs:
+        - samples: sampled data points
+        - id: (int) iteration number in shapefile's features loop -- this is mostly used for this specific use case
+        - name_google_drive_folder: (string) name of the output folder in Google Drive
+        - numPixels: The approximate number of pixels to sample.
+        - scale: scale used in startified sampling
+        - tileScale: tileScale used in startified sampling
+        """
+        # Set configuration parameters for output image
+        task_config = {
+            'folder': f'{name_google_drive_folder}', # output Google Drive folder
+            }
+        # Export image to Google Drive
+        task = ee.batch.Export.table.toDrive(samples, f"{name_google_drive_folder}_training_set_MF_AGB_{numPixels}pixels_{scale}scale_{index}", **task_config)
+        task.start()
+
+    def samples_csv_export(self, shp_asset_path, name_output_google_drive_folder, numPixels, scale):
+        """
+        Generates samples from the image and export them as CSV files to Google Drive.
+
+        Parameters
+        ----------
+        shp_asset_path: ee asset gridded shapefile (ex: 'projects/ee-margauxmasson21-shapefiles/assets/latin_america_gridded_5000km2')
+        name_output_google_drive_folder: string name of the folder in Google Drive where the CSV files will be saved
+        numPixels: int The approximate number of pixels to sample.
+        scale: int Scale for the sampling
+        -------
+
+        """
+        ###### Loading shapefile asset ######
+        nb_features, list_features_assets = self.load_ee_asset_shapefile(shp_asset_path)
+            
+        # Looping through the grids
+        for i in tqdm(range(nb_features)):
+            # Samples the pixels of an image, returning them as a FeatureCollection.
+            # Each feature will have 1 property per band in the input image.
+            # Note that the default behavior is to drop features that intersect masked pixels,
+            # which result in null-valued properties (see dropNulls argument).
+            sample_current_feature = self.image.clip(list_features_assets[i]['geometry']).sample(
+                numPixels=numPixels,
+                region=list_features_assets[i]['geometry'],
+                scale=scale,
+                geometries=True
+                # keeping the geometries so we can know where the data points are exactly and can display them on a map
+            )
+            size = sample_current_feature.size().getInfo()
+
+            # Export csv one by one (if not empty) to avoid GEE queries limitations
+            if size != 0:
+                self.export_samples_to_drive(sample_current_feature, index=i,
+                                             name_google_drive_folder=name_output_google_drive_folder,
+                                             numPixels=numPixels, scale=scale)
+
+    def export_tiles_to_drive(self, image, region, name_output_google_drive_folder, index, scale, maxPixels):
+        """
+        Exports tiles images to Google Drive.
+
+        Parameters
+        ----------
+        image: ee image to use as source for the tiles
+        region: A LinearRing, Polygon, or coordinates representing region to export.
+        description: A human-readable name of the task. May contain letters, numbers, -, _ (no spaces).
+        name_output_google_drive_folder: string name of the Google Drive Folder that the export will reside in.
+        scale: int Resolution in meters per pixel.
+        maxPixels: int Restrict the number of pixels in the export.
+        -------
+        """
+        task = ee.batch.Export.image.toDrive(image=image.clip(region),
+                                             region=region,
+                                             description=f'{name_output_google_drive_folder}_scale{scale}_{index}',
+                                             folder=name_output_google_drive_folder,
+                                             scale=scale,
+                                             maxPixels=maxPixels)
+        task.start()
+
+    def tiles_export(self, shp_asset_path, name_output_google_drive_folder, scale, maxPixels=1e13):
+        """
+        Exports tiles from the image using a gridded shapefile. Note: the gridded shapefile needs to be created ahead of time with the tiles size desired for this export.
+
+        Parameters
+        ----------
+        shp_asset_path: ee asset gridded shapefile (ex: 'projects/ee-margauxmasson21-shapefiles/assets/latin_america_gridded_10degrees')
+        name_output_google_drive_folder: string name of the folder in Google Drive where the tiles will be saved
+        scale: int Scale for the sampling
+        maxPixels: int Restrict the number of pixels in the export.
+        -------
+
+        """
+        ###### Loading shapefile asset ######
+        nb_features, list_features_assets = self.load_ee_asset_shapefile(shp_asset_path)
+
+        print('\nStarting collecting tiles...')
+        # Looping through all features from the shapefile (=grids if using a gridded shapefile)
+        for i in tqdm(range(nb_features)):
+            test = self.image.clip(list_features_assets[i]['geometry'])
+            self.export_tiles_to_drive(test, region=ee.Geometry(list_features_assets[i]['geometry']),
+                                       name_output_google_drive_folder=name_output_google_drive_folder,
+                                       index=i, scale=scale, maxPixels=maxPixels)
 
 ################################
 #TODO: Anika I think we can incorporate all the below functionality into the above. For example the above code
