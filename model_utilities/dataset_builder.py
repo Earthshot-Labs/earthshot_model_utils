@@ -52,12 +52,12 @@ class EEImageBuilder():
             if key == 'forest_non_forest':
                 #Create a forest/non forest mask using the Global PALSAR-2/PALSAR Forest/Non-Forest Layer.
                 dataset_forest = ee.ImageCollection('JAXA/ALOS/PALSAR/YEARLY/FNF').filterDate(
-                    filter_dict[key]['date_range']).first()
+                    filter_dict[key]['date_range'][0], filter_dict[key]['date_range'][1]).first()
                 # Select the Forest/Non-Forest landcover classification band
                 fnf = dataset_forest.select('fnf')
                 # Select pixels = 1 (1:forest, 2:nonforest, 3:water)
                 mask_forest = fnf.eq(1)
-                biomass.updateMask(mask_forest)
+                biomass = biomass.updateMask(mask_forest)
             if key == 'min_forest_age':
                 #Create a forest age mask using the forest age from
                 #"Mapping global forest age from forest inventories, biomass and climate data"
@@ -65,17 +65,17 @@ class EEImageBuilder():
                 dataset_age = ee.Image("projects/es-gis-resources/assets/forestage").select([0], ['forestage'])
                 # Get forests older than age
                 mask_age = dataset_age.gte(filter_dict[key]['age'])
-                biomass.updateMask(mask_age)
+                biomass = biomass.updateMask(mask_age)
             if key == 'very_low_density_rural':
                 #Create degree of urbanisation mask using the GHSL - Global Human Settlement Layer:
                 #https://ghsl.jrc.ec.europa.eu/ghs_smod2022.php
-                #TODO: how did we find and decide to use this?
+                #This filter is used in the Walker paper
                 year = filter_dict[key]['year']
                 dataset_urbanisation = ee.Image(
                     f'projects/ee-mmf-mature-forest-biomass/assets/GHS_SMOD_E{year}_GLOBE_R2022A_54009_1000_V1_0')
                 #Mask to pixels belonging to very low density rural grid cells (11)
                 mask_urbanisation_degree = dataset_urbanisation.eq(11)
-                biomass.updateMask(mask_urbanisation_degree)
+                biomass = biomass.updateMask(mask_urbanisation_degree)
             if key == 'forest_loss':
                 #Create Forest loss proximity mask using the Hansen Global Forest Change v1.9 (2000-2021)
                 #TODO: Review code
@@ -83,10 +83,10 @@ class EEImageBuilder():
                 # Distance from forest loss from before {year}
                 year = filter_dict[key]['year']
                 distance = filter_dict[key]['distance']
-                distance_forest_loss = dataset_hansen_loss.lte(int(year[-2] + year[-1])).distance(
+                distance_forest_loss = dataset_hansen_loss.lte(int(str(year)[-2] + str(year)[-1])).distance(
                     ee.Kernel.euclidean(distance, 'meters'))
                 mask_forest_loss_proximity = distance_forest_loss.mask().eq(0)
-                biomass.updateMask(mask_forest_loss_proximity)
+                biomass = biomass.updateMask(mask_forest_loss_proximity)
             if key == 'forest_gain':
                 #Create Forest gain proximity mask using the Hansen Global Forest Change v1.9 (2000-2021)
                 # TODO: Review code
@@ -96,7 +96,7 @@ class EEImageBuilder():
                 distance_forest_gain = dataset_hansen_gain.distance(
                     ee.Kernel.euclidean(distance, 'meters'))
                 mask_forest_gain_proximity = distance_forest_gain.mask().eq(0)
-                biomass.updateMask(mask_forest_gain_proximity)
+                biomass = biomass.updateMask(mask_forest_gain_proximity)
             if key == 'roads':
                 #Create roads proximity mask using the Global Roads Open Access Data Set (gROADS),
                 #v1 (1980–2010) dataset
@@ -105,7 +105,7 @@ class EEImageBuilder():
                 distance = filter_dict[key]['distance']
                 distance_roads = dataset_roads.distance(ee.Number(distance))
                 mask_roads_proximity = distance_roads.mask().eq(0)
-                biomass.updateMask(mask_roads_proximity)
+                biomass = biomass.updateMask(mask_roads_proximity)
             if key == 'fire':
                 #Create past fires mask using FireCCI51: MODIS Fire_cci Burned Area Pixel Product, Version 5.1
                 # TODO: Review code and overall approach
@@ -114,7 +114,7 @@ class EEImageBuilder():
                 burnedArea = dataset.select('BurnDate')
                 maxBA = burnedArea.max()
                 mask_past_fires = maxBA.mask().eq(0)
-                biomass.updateMask(mask_past_fires)
+                biomass = biomass.updateMask(mask_past_fires)
 
         #Create the image from this, or add to it if it's there already
         if self.image is None:
@@ -134,9 +134,6 @@ class EEImageBuilder():
         -------
 
         """
-        #TODO: Update mask once at the end on the whole stack of bands (does this actually need done? If image already
-        # created, the mask should be too right? Do a test, count pixels of image)
-
         # If the biomass image isn't already created, make an empty image
         if self.image is None:
             self.image = ee.Image()
@@ -147,7 +144,7 @@ class EEImageBuilder():
                 # Use the BIOME_NUM band, convert from double to int to potentially use with stratified sampling
                 # The paint function paints the geometries of a collection onto an image.
                 ecoregion_image = ee.Image().int().paint(ecoregion_dataset, "BIOME_NUM").rename('BIOME_NUM')
-                self.image = self.image.addBands(ecoregion_image)
+                self.image = self.image.addBands(ecoregion_image.updateMask(self.image.select(0)))
             if covariate == 'terraclimate':
                 # Using 1960 to 1991 to match with BioClim.
                 terraclimate_dataset = ee.ImageCollection('IDAHO_EPSCOR/TERRACLIMATE').filter(
@@ -155,18 +152,18 @@ class EEImageBuilder():
                 #Take the mean of these monthly data over this time period (retains all bands of image apparently)
                 terraclimate_mean = terraclimate_dataset.reduce(ee.Reducer.mean())
                 #Add all bands to output
-                self.image = self.image.addBands(terraclimate_mean)
+                self.image = self.image.addBands(terraclimate_mean.updateMask(self.image.select(0)))
             if covariate == 'soilgrids':
                 #TODO: use new data
                 0
             if covariate == 'bioclim':
                 bioclim_image = ee.Image('WORLDCLIM/V1/BIO')
-                self.image = self.image.addBands(bioclim_image)
+                self.image = self.image.addBands(bioclim_image.updateMask(self.image.select(0)))
             if covariate == 'terrain':
                 terrain_bands = ['elevation', 'aspect', 'slope', 'hillshade']
                 # Updated to use SRTM
                 terrain_image = ee.Terrain.products(ee.Image('CGIAR/SRTM90_V4')).select(terrain_bands)
-                self.image = self.image.addBands(terrain_image)
+                self.image = self.image.addBands(terrain_image.updateMask(self.image.select(0)))
 
     def training_sets(self, polygon_list, buffer):
         #TODO; given a list of polygons specifying test sets, add one band per polygon that has 0s within the polygon
