@@ -70,9 +70,9 @@ class GrowthCurveFit():
         max_list = self.max_df['agb_bgb_tCO2e_ha'].tolist()
         for this_max in max_list:
             y_max_array = np.ones_like(age) * this_max
-            if curve_formula is 'chapman_richards_set_ymax':
+            if curve_formula == 'chapman_richards_set_ymax':
                 curve_fit_params['xdata'] = np.concatenate((age, y_max_array), axis=1)
-            elif curve_formula is 'chapman_richards_set_ymax_and_p':
+            elif curve_formula == 'chapman_richards_set_ymax_and_p':
                 p_array = np.ones_like(age) * set_params['p']
                 curve_fit_params['xdata'] = np.concatenate((age, y_max_array, p_array), axis=1)
                 self.set_params = set_params

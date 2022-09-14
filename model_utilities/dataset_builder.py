@@ -136,8 +136,11 @@ class EEImageBuilder():
 
         """
         # If the biomass image isn't already created, make an empty image
+        # Otherwise, expect a single band image with a mask that will be used here
         if self.image is None:
             self.image = ee.Image()
+        else:
+            mask = self.image.mask()
 
         for covariate in covariates:
             if covariate == 'ecoregion':
@@ -145,7 +148,7 @@ class EEImageBuilder():
                 # Use the BIOME_NUM band, convert from double to int to potentially use with stratified sampling
                 # The paint function paints the geometries of a collection onto an image.
                 ecoregion_image = ee.Image().int().paint(ecoregion_dataset, "BIOME_NUM").rename('BIOME_NUM')
-                self.image = self.image.addBands(ecoregion_image.updateMask(self.image.select(0)))
+                self.image = self.image.addBands(ecoregion_image.updateMask(mask))
             if covariate == 'terraclimate':
                 # Using 1960 to 1991 to match with BioClim.
                 terraclimate_dataset = ee.ImageCollection('IDAHO_EPSCOR/TERRACLIMATE').filter(
@@ -153,18 +156,18 @@ class EEImageBuilder():
                 #Take the mean of these monthly data over this time period (retains all bands of image apparently)
                 terraclimate_mean = terraclimate_dataset.reduce(ee.Reducer.mean())
                 #Add all bands to output
-                self.image = self.image.addBands(terraclimate_mean.updateMask(self.image.select(0)))
+                self.image = self.image.addBands(terraclimate_mean.updateMask(mask))
             if covariate == 'soilgrids':
                 #TODO: use new data
                 0
             if covariate == 'bioclim':
                 bioclim_image = ee.Image('WORLDCLIM/V1/BIO')
-                self.image = self.image.addBands(bioclim_image.updateMask(self.image.select(0)))
+                self.image = self.image.addBands(bioclim_image.updateMask(mask))
             if covariate == 'terrain':
                 terrain_bands = ['elevation', 'aspect', 'slope', 'hillshade']
                 # Updated to use SRTM
                 terrain_image = ee.Terrain.products(ee.Image('CGIAR/SRTM90_V4')).select(terrain_bands)
-                self.image = self.image.addBands(terrain_image.updateMask(self.image.select(0)))
+                self.image = self.image.addBands(terrain_image.updateMask(mask))
 
     def training_sets(self, polygon_list, buffer):
         #TODO; given a list of polygons specifying test sets, add one band per polygon that has 0s within the polygon
@@ -189,11 +192,11 @@ class EEImageBuilder():
         ###### Loading shapefile asset ######
         try:
             # Loading the shapefile that was uploaded as a GEE asset -- we load the asset as a FeatureCollection
-            country_asset = ee.FeatureCollection(shp_asset_path)
-            # nb_features = number of grids in the shapefile
-            nb_features = country_asset.size().getInfo()
+            asset = ee.FeatureCollection(shp_asset_path)
+            # nb_features = number of grid cells in the shapefile
+            nb_features = asset.size().getInfo()
             # Converting FeatureCollection to python list because it crashes when query > 5000 elements
-            list_features_assets = country_asset.toList(nb_features).getInfo()
+            list_features_assets = asset.toList(nb_features).getInfo()
             print(f"Geometry number of features: {nb_features}")
         except:
             print(f"Error when loading FeatureCollection: {shp_asset_path}.")
