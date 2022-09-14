@@ -3,7 +3,7 @@
 import ee
 from tqdm import tqdm
 
-class EEImageBuilder():
+class EEDatasetBuilder():
 
     def __init__(self):
         """
