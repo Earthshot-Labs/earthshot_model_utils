@@ -180,13 +180,13 @@ class EEDatasetBuilder():
 
         Parameters
         ----------
-        shp_asset_path: ee asset gridded shapefile (ex: 'projects/ee-margauxmasson21-shapefiles/assets/latin_america_gridded_5000km2')
+        - shp_asset_path: (ee asset) gridded shapefile (ex: 'projects/ee-margauxmasson21-shapefiles/assets/latin_america_gridded_5000km2')
         -------
 
         Returns
         ----------
-        nb_features: number of features in the shapefile (eg: number of grids)
-        list_features_assets: list of all the features (grids) from the shapefile
+        - nb_features: number of features in the shapefile (eg: number of grids)
+        - list_features_assets: list of all the features (grids) from the shapefile
         -------
         """
         ###### Loading shapefile asset ######
@@ -204,36 +204,40 @@ class EEDatasetBuilder():
 
         return nb_features, list_features_assets
 
-    def export_samples_to_drive(self, samples, index, name_google_drive_folder, numPixels, scale):
+    def export_samples_to_cloud_storage(self, samples, index, name_gcp_bucket, folder_in_gcp_bucket, numPixels, scale):
         """
-        Export table to Google Drive
-        
+        Export table to GCP bucket
+
         Inputs:
         - samples: sampled data points
-        - id: (int) iteration number in shapefile's features loop -- this is mostly used for this specific use case
-        - name_google_drive_folder: (string) name of the output folder in Google Drive
-        - numPixels: The approximate number of pixels to sample.
-        - scale: scale used in startified sampling
-        - tileScale: tileScale used in startified sampling
+        - index: (int) iteration number in shapefile's features loop -- this is mostly used for this specific use case
+        - name_gcp_bucket: (string) name of the output folder in Cloud Storage
+        - folder_in_gcp_bucket: (string) name of the folder path in the GCP bucker
+        - numPixels: (int) The approximate number of pixels to sample.
+        - scale: (int) scale used in startified sampling
         """
         # Set configuration parameters for output image
         task_config = {
-            'folder': f'{name_google_drive_folder}', # output Google Drive folder
-            }
-        # Export image to Google Drive
-        task = ee.batch.Export.table.toDrive(samples, f"{name_google_drive_folder}_training_set_MF_AGB_{numPixels}pixels_{scale}scale_{index}", **task_config)
+            'bucket': f'{name_gcp_bucket}',  # output GCP bucket
+            'description': f"training_set_MF_AGB_{numPixels}pixels_{scale}scale_{index}",
+            'fileNamePrefix': folder_in_gcp_bucket + '/' + f"training_set_MF_AGB_{numPixels}pixels_{scale}scale_{index}"
+        }
+        # Export image to GCP bucket
+        task = ee.batch.Export.table.toCloudStorage(samples,
+                                                    **task_config)
         task.start()
 
-    def samples_csv_export(self, shp_asset_path, name_output_google_drive_folder, numPixels, scale):
+    def samples_csv_export(self, shp_asset_path, name_gcp_bucket, folder_in_gcp_bucket, numPixels, scale):
         """
         Generates samples from the image and export them as CSV files to Google Drive.
 
         Parameters
         ----------
-        shp_asset_path: ee asset gridded shapefile (ex: 'projects/ee-margauxmasson21-shapefiles/assets/latin_america_gridded_5000km2')
-        name_output_google_drive_folder: string name of the folder in Google Drive where the CSV files will be saved
-        numPixels: int The approximate number of pixels to sample.
-        scale: int Scale for the sampling
+        - shp_asset_path: (ee asset) gridded shapefile (ex: 'projects/ee-margauxmasson21-shapefiles/assets/latin_america_gridded_5000km2')
+        - folder_in_gcp_bucket: (string) name of the folder path in the GCP bucker
+        - name_output_google_drive_folder: (string) name of the folder in Google Drive where the CSV files will be saved
+        - numPixels: (int) The approximate number of pixels to sample.
+        - scale: (int) Scale for the sampling
         -------
 
         """
@@ -257,8 +261,9 @@ class EEDatasetBuilder():
 
             # Export csv one by one (if not empty) to avoid GEE queries limitations
             if size != 0:
-                self.export_samples_to_drive(sample_current_feature, index=i,
-                                             name_google_drive_folder=name_output_google_drive_folder,
+                self.export_samples_to_cloud_storage(sample_current_feature, index=i,
+                                             name_gcp_bucket=name_gcp_bucket,
+                                             folder_in_gcp_bucket=folder_in_gcp_bucket,
                                              numPixels=numPixels, scale=scale)
 
     def export_tiles_to_drive(self, image, region, name_output_google_drive_folder, index, scale, maxPixels):
@@ -267,12 +272,13 @@ class EEDatasetBuilder():
 
         Parameters
         ----------
-        image: ee image to use as source for the tiles
-        region: A LinearRing, Polygon, or coordinates representing region to export.
-        description: A human-readable name of the task. May contain letters, numbers, -, _ (no spaces).
-        name_output_google_drive_folder: string name of the Google Drive Folder that the export will reside in.
-        scale: int Resolution in meters per pixel.
-        maxPixels: int Restrict the number of pixels in the export.
+        - image: (ee image )to use as source for the tiles
+        - region: A LinearRing, Polygon, or coordinates representing region to export.
+        - description: (string) A human-readable name of the task. May contain letters, numbers, -, _ (no spaces).
+        - name_output_google_drive_folder: (string) name of the Google Drive Folder that the export will reside in.
+        - index: (int) iteration number in shapefile's features loop -- this is mostly used for this specific use case
+        - scale: (int) Resolution in meters per pixel.
+        - maxPixels: (int) Restrict the number of pixels in the export.
         -------
         """
         task = ee.batch.Export.image.toDrive(image=image.clip(region),
@@ -289,10 +295,10 @@ class EEDatasetBuilder():
 
         Parameters
         ----------
-        shp_asset_path: ee asset gridded shapefile (ex: 'projects/ee-margauxmasson21-shapefiles/assets/latin_america_gridded_10degrees')
-        name_output_google_drive_folder: string name of the folder in Google Drive where the tiles will be saved
-        scale: int Scale for the sampling
-        maxPixels: int Restrict the number of pixels in the export.
+        - shp_asset_path: (ee asset) gridded shapefile (ex: 'projects/ee-margauxmasson21-shapefiles/assets/latin_america_gridded_10degrees')
+        - name_output_google_drive_folder: (string) name of the folder in Google Drive where the tiles will be saved
+        - scale: (int) Scale for the sampling
+        - maxPixels: (int) Restrict the number of pixels in the export.
         -------
 
         """
