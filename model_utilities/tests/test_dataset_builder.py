@@ -88,16 +88,18 @@ def upload_to_bucket(bucket_name, blob_path, local_path):
     bucket = storage.Client().bucket(bucket_name)
     blob = bucket.blob(blob_path)
     blob.upload_from_filename(local_path)
-    # return blob.url
 
-blob_path = 'potential-mature-forest-biomass'
 local_path = os.path.join('.', name_output_csv_merged_file) #local file path
-print(local_path)
+gcp_folder_path = 'potential-mature-forest-biomass'
+blob_path = f"{gcp_folder_path}/{local_path.split('/')[-1]}"
+print(blob_path)
 upload_to_bucket(gcp_bucket, blob_path, local_path)
 
-df_merged = pd.read_csv(f'gs://{gcp_bucket}/{blob_path}/{local_path}')
+df_merged = pd.read_csv(f'gs://{gcp_bucket}/{blob_path}')
 print(df_merged.head(5))
 print('Done!')
+
+
 
 
 
