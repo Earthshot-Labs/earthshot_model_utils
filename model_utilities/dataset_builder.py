@@ -233,6 +233,7 @@ class EEDatasetBuilder():
                 terrain_image = ee.Terrain.products(ee.Image('CGIAR/SRTM90_V4')).select(terrain_bands)
                 self.image = self.image.addBands(terrain_image.updateMask(mask))
 
+    # TODO: test if ee asset looks good after export
     def export_image_as_asset(self, name_asset, scale, maxPixels):
         """
         Export image as an ee asset
@@ -247,7 +248,7 @@ class EEDatasetBuilder():
         """
         # Export image as an EE asset
         globe = ee.FeatureCollection('projects/ee-margauxmasson21-shapefiles/assets/world_rectangle')
-        task = ee.batch.Export.image.toAsset(image=self.image,
+        task = ee.batch.Export.image.toAsset(image=self.image.clip(globe),
                                              region=globe,
                                              description=f'export_asset_ee_dataset_builder_model_utilities',
                                              assetId=f'{name_asset}_scale{scale}',
