@@ -1,5 +1,5 @@
 */*.egg-info/*
-.idea/
+*.idea/
 *.DS_Store
 *.ipynb_checkpoints/
 *__pycache__/
