@@ -2,6 +2,10 @@
 
 import ee
 from tqdm import tqdm
+import pandas as pd
+import os
+import shutil
+
 
 class EEDatasetBuilder():
 
@@ -229,7 +233,7 @@ class EEDatasetBuilder():
 
     def samples_csv_export(self, shp_asset_path, name_gcp_bucket, folder_in_gcp_bucket, numPixels, scale):
         """
-        Generates samples from the image and export them as CSV files to Google Drive.
+        Generates samples from the image and export them as CSV files to GCP bucket.
 
         Parameters
         ----------
@@ -265,6 +269,52 @@ class EEDatasetBuilder():
                                              name_gcp_bucket=name_gcp_bucket,
                                              folder_in_gcp_bucket=folder_in_gcp_bucket,
                                              numPixels=numPixels, scale=scale)
+
+    def merge_samples_csv(self, client, gcp_bucket, gcp_folder_path, name_output_csv_merged_file):
+        """
+        Merges the exported samples csv into on csv file
+
+        Parameters
+        ----------
+        - client: google cloud client
+        - gcp_bucket: (string) name of the GCP bucket used
+        - gcp_folder_path: (string) name of the folder in the GCP bucket where the final csv will be saved
+        - name_output_csv_merged_file: (string) name of the final merged samples csv file
+        -------
+
+        Returns
+        ----------
+        - url_csv_merged_file_bucket: url where the merged csv file was saved in the GCP bucket
+        -------
+
+        """
+        list_csv_files = []
+        for blob in client.list_blobs(gcp_bucket, prefix=gcp_folder_path):
+            # print(str(blob))
+            file = str(blob).split('/')[-1].split(',')[0]
+            if '.csv' in file:
+                list_csv_files.append(f'gs://{gcp_bucket}/{gcp_folder_path}/{file}')
+
+        list_csv_files.sort()
+        print(f"There are {len(list_csv_files)} csv file to be merged.")
+
+        # merge files
+        dataFrame = pd.concat(map(pd.read_csv, list_csv_files), ignore_index=True)
+        # Create temp folder to store the merged csv file -- will be deleted
+        if not os.path.exists('temp'):
+            os.makedirs('temp')
+        local_path = os.path.join('temp', name_output_csv_merged_file)  # local temp file path
+        pd.DataFrame.to_csv(dataFrame, local_path, index=False)
+        blob_path = f"{gcp_folder_path}/{local_path.split('/')[-1]}"
+        # upload_to_bucket
+        bucket = client.bucket(gcp_bucket)
+        blob = bucket.blob(blob_path)
+        blob.upload_from_filename(local_path)
+        url_csv_merged_file_bucket = f'gs://{gcp_bucket}/{blob_path}'
+
+        # Remove temp directory
+        shutil.rmtree('temp')
+        return url_csv_merged_file_bucket
 
     def export_tiles_to_drive(self, image, region, name_output_google_drive_folder, index, scale, maxPixels):
         """
