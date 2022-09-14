@@ -4,81 +4,77 @@ import sys
 sys.path.append('..')
 
 from dataset_builder import EEDatasetBuilder
-
-import ee
-import geemap
-import pandas as pd
-import os
-import glob
-
-from osgeo import gdal, ogr, gdal_array # I/O image data
-import numpy as np # math and array handling
-import matplotlib.pyplot as plt # plot figures
-from sklearn.ensemble import RandomForestClassifier, RandomForestRegressor # classifier
-from sklearn.metrics import classification_report, accuracy_score,confusion_matrix  # calculating measures for accuracy assessment
-from sklearn import metrics
-
-import seaborn as sn
-import pickle
-import datetime
-from tqdm import tqdm
-import subprocess
-
-# Tell GDAL to throw Python exceptions, and register all drivers
-gdal.UseExceptions()
-gdal.AllRegister()
-
-from google.cloud import storage
 import warnings
 warnings.filterwarnings("ignore", "Your application has authenticated using end user credentials")
 
-########## Dataset builder #############
-run_export = False
-
-ee_dataset_builder = EEDatasetBuilder()
-ee_dataset_builder.filtered_biomass_layer_from_raster(
-    biomass_raster='Spawn_AGB_tCO2e',
-    filter_dict={'forest_non_forest': {'date_range': ['2010-01-01', '2010-12-31']},
-                 'min_forest_age': {'age': 40},
+################## Variables Definitions ##################
+##### 1. Dataset builder #####
+biomass_raster = 'Spawn_AGB_tCO2e'
+filter_dict = {'forest_non_forest': {'date_range': ['2010-01-01', '2010-12-31']},
+               'min_forest_age': {'age': 40},
+               'protected_areas': {},
                 # 'very_low_density_rural': {'year': 2010},
                 # 'forest_loss': {'year': 2010, 'distance': 5000},
                 # 'forest_gain' : {'distance': 5000},
                 # 'roads': {'distance': 5000},
                 # 'fire': {'year': 2010}
-    }
+               }
+covariates_image_list = ['ecoregion', 'terrain', 'bioclim', 'terraclimate', 'soildata']
+
+##### 2. Actions to run #####
+run_export_csv_samples = False
+run_export_inference_tiles = False
+run_export_image_as_ee_asset = True
+
+##### 3. "Global Variables #####
+gcp_bucket = 'earthshot-science'
+gcp_folder_name = 'potential-mature-forest-biomass'
+samples_folder_name = 'samples_csv'
+tiles_folder_name = 'inference_tiles'
+scale = 100
+
+##### 4. Variables for: Export samples csv to bucket #####
+# Gridded world shapefile asset in GEE
+shp_asset_path_samples = 'projects/ee-margauxmasson21-shapefiles/assets/latin_america_gridded_5000km2'
+numPixels = 2000
+
+##### 5. Variables for: Export inference tiles to bucket #####
+shp_asset_path_tiles = 'projects/ee-margauxmasson21-shapefiles/assets/latin_america_gridded_10degrees'
+maxPixels = 1e13
+
+##### 6. Variables for: Export image as an EE asset #####
+name_asset = 'projects/ee-earthshot/assets/mature_forest_biomass'
+
+################## Dataset builder ##################
+ee_dataset_builder = EEDatasetBuilder()
+ee_dataset_builder.filtered_biomass_layer_from_raster(
+    biomass_raster=biomass_raster,
+    filter_dict=filter_dict
 )
-ee_dataset_builder.spatial_covariates(covariates=['ecoregion', 'terrain', 'bioclim', 'terraclimate'])
+ee_dataset_builder.spatial_covariates(covariates=covariates_image_list)
 print(ee_dataset_builder.image.bandNames().getInfo())
 
-######### Export samples CSV to Cloud Storage ###########
-gcp_bucket = 'earthshot-science'  # /potential-mature-forest-biomass
-
-if run_export:
-    # Gridded world shapefile asset in GEE
-    shp_asset_path = 'projects/ee-margauxmasson21-shapefiles/assets/latin_america_gridded_5000km2'
-
+################## Export samples csv to GCP bucket ##################
+if run_export_csv_samples:
     # This will take quite some time
-    ee_dataset_builder.samples_csv_export(shp_asset_path,
+    ee_dataset_builder.samples_csv_export(shp_asset_path_samples,
                                         name_gcp_bucket=gcp_bucket,
-                                        folder_in_gcp_bucket='potential-mature-forest-biomass',
-                                        numPixels=2000, scale=100)
+                                        folder_in_gcp_bucket=gcp_folder_name + '/' + samples_folder_name,
+                                        numPixels=numPixels, scale=scale)
 
-# we need to wait until all the csv files are uploaded to the GCP bucket
-# TODO: how can we check all the csv files we uploaded to GCP from GEE? Should we just split those codes?
-if run_export:
-    import time
-    time.sleep(5*60)
-client = storage.Client()
-gcp_folder_path = 'potential-mature-forest-biomass'
-name_output_csv_merged_file = 'latin_america_gridded_5000km2_training_set_mature_forest_biomass_AGB.csv'
-url_csv_merged_file_bucket = ee_dataset_builder.merge_samples_csv(client, gcp_bucket, gcp_folder_path,
-                                                                  name_output_csv_merged_file)
+################## Export inference tiles to GCP bucket ##################
+if run_export_inference_tiles:
+    print(f'\nExport inference tiles using the shapefile: {shp_asset_path_tiles}...')
+    # This will take quite some time
+    ee_dataset_builder.tiles_export(shp_asset_path_tiles,
+                                        name_gcp_bucket=gcp_bucket,
+                                        folder_in_gcp_bucket=gcp_folder_name + '/' + tiles_folder_name,
+                                        maxPixels=maxPixels, scale=scale)
+    print('Inference tiles export done.\n')
 
-df_merged = pd.read_csv(url_csv_merged_file_bucket)
-print(df_merged.head(5))
-print('Done!')
-
-
-
-
-
+################## Export ee image as an ee asset ##################
+if run_export_image_as_ee_asset:
+    print(f'\nExport ee image as an ee asset')
+    ee_dataset_builder.export_image_as_asset(name_asset=name_asset,
+                                             scale=scale,
+                                             maxPixels=maxPixels)

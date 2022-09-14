@@ -3,8 +3,6 @@
 import ee
 from tqdm import tqdm
 import pandas as pd
-import os
-import shutil
 
 
 class EEDatasetBuilder():
@@ -120,6 +118,12 @@ class EEDatasetBuilder():
                 maxBA = burnedArea.max()
                 mask_past_fires = maxBA.mask().eq(0)
                 biomass = biomass.updateMask(mask_past_fires)
+            if key == 'protected_areas':
+                #Create protected areas mask
+                # TODO: Review code and overall approach
+                dataset = ee.FeatureCollection('WCMC/WDPA/current/polygons')
+                mask_protected_areas = ee.Image().float().paint(dataset, 'REP_AREA')
+                biomass = biomass.updateMask(mask_protected_areas)
 
         #Create the image from this, or add to it if it's there already
         if self.image is None:
@@ -127,13 +131,33 @@ class EEDatasetBuilder():
         else:
             self.image.addBands(biomass)
 
+    def rename_bands(self, image, prefix):
+        """
+        Rename bands names by adding a prefix to all the bands' names
+
+        Parameters
+        ----------
+        image: (ee image) that needs bands to be renamed
+        prefix: (string) to add in front of the bands names
+        -------
+
+        Returns
+        ----------
+        image_bands_renamed: the image with the correctly renamed bands
+        -------
+        """
+        renamed_bands_names = [f'{prefix}_{name}' for name in image.bandNames().getInfo()]
+        image_renamed = image.select(image.bandNames().getInfo()).rename(
+            renamed_bands_names)
+        return image_renamed
+
     def spatial_covariates(self, covariates):
         """
         Uses an appropriate earth engine asset to add spatial covariate bands to the image
 
         Parameters
         ----------
-        covariates: list of strings, taken from ['ecoregion', 'terraclimate', 'soilgrids', 'bioclim',
+        covariates: list of strings, taken from ['ecoregion', 'terraclimate', 'soildata', 'bioclim',
         'terrain']
 
         -------
@@ -161,9 +185,45 @@ class EEDatasetBuilder():
                 terraclimate_mean = terraclimate_dataset.reduce(ee.Reducer.mean())
                 #Add all bands to output
                 self.image = self.image.addBands(terraclimate_mean.updateMask(mask))
-            if covariate == 'soilgrids':
-                #TODO: use new data
-                0
+            if covariate == 'soildata':
+                # 1. Soil Bulk
+                soil_bulk_dataset = ee.Image("OpenLandMap/SOL/SOL_BULKDENS-FINEEARTH_USDA-4A1H_M/v02")
+                # Renaming the bands of the soil data layers because they all have the same names otherwise
+                soil_bulk_dataset = self.rename_bands(soil_bulk_dataset, 'soil_bulk')
+                self.image = self.image.addBands(soil_bulk_dataset.updateMask(mask))
+
+                # 2. Clay Content
+                clay_content_dataset = ee.Image("OpenLandMap/SOL/SOL_CLAY-WFRACTION_USDA-3A1A1A_M/v02")
+                # Renaming the bands of the soil data layers because they all have the same names otherwise
+                clay_content_dataset = self.rename_bands(clay_content_dataset, 'clay_content')
+                self.image = self.image.addBands(clay_content_dataset.updateMask(mask))
+
+                # 3. Soil Organic Carbon Content
+                soil_organic_content_dataset = ee.Image("OpenLandMap/SOL/SOL_ORGANIC-CARBON_USDA-6A1C_M/v02")
+                # Renaming the bands of the soil data layers because they all have the same names otherwise
+                soil_organic_content_dataset = self.rename_bands(soil_organic_content_dataset, 'soil_organic_content')
+                self.image = self.image.addBands(soil_organic_content_dataset.updateMask(mask))
+
+                # 4. Soil pH in H2O
+                soil_ph_h20_dataset = ee.Image("OpenLandMap/SOL/SOL_PH-H2O_USDA-4C1A2A_M/v02")
+                soil_ph_h20_dataset = self.rename_bands(soil_ph_h20_dataset, 'soil_ph_h20')
+                self.image = self.image.addBands(soil_ph_h20_dataset.updateMask(mask))
+
+                # 5. Sand Content
+                sand_content_dataset = ee.Image("OpenLandMap/SOL/SOL_SAND-WFRACTION_USDA-3A1A1A_M/v02")
+                sand_content_dataset = self.rename_bands(sand_content_dataset, 'sand_content')
+                self.image = self.image.addBands(sand_content_dataset.updateMask(mask))
+
+                # 6. Soil Water Content at 33kPa (Field Capacity)
+                soil_water_content_dataset = ee.Image("OpenLandMap/SOL/SOL_WATERCONTENT-33KPA_USDA-4B1C_M/v01")
+                soil_water_content_dataset = self.rename_bands(soil_water_content_dataset, 'soil_water_content')
+                self.image = self.image.addBands(soil_water_content_dataset.updateMask(mask))
+
+                # 7. Soil Texture Class (USDA System)
+                soil_texture_class_dataset = ee.Image("OpenLandMap/SOL/SOL_TEXTURE-CLASS_USDA-TT_M/v02")
+                soil_texture_class_dataset = self.rename_bands(soil_texture_class_dataset, 'soil_texture_class')
+                self.image = self.image.addBands(soil_texture_class_dataset.updateMask(mask))
+
             if covariate == 'bioclim':
                 bioclim_image = ee.Image('WORLDCLIM/V1/BIO')
                 self.image = self.image.addBands(bioclim_image.updateMask(mask))
@@ -172,6 +232,28 @@ class EEDatasetBuilder():
                 # Updated to use SRTM
                 terrain_image = ee.Terrain.products(ee.Image('CGIAR/SRTM90_V4')).select(terrain_bands)
                 self.image = self.image.addBands(terrain_image.updateMask(mask))
+
+    def export_image_as_asset(self, name_asset, scale, maxPixels):
+        """
+        Export image as an ee asset
+
+        Parameters
+        ----------
+        - name_asset: (string) name of the ee asset that will be created
+        - scale: (int) Resolution in meters per pixel.
+        - maxPixels: (int) Restrict the number of pixels in the export.
+        -------
+
+        """
+        # Export image as an EE asset
+        globe = ee.FeatureCollection('projects/ee-margauxmasson21-shapefiles/assets/world_rectangle')
+        task = ee.batch.Export.image.toAsset(image=self.image,
+                                             region=globe,
+                                             description=f'export_asset_ee_dataset_builder_model_utilities',
+                                             assetId=f'{name_asset}_scale{scale}',
+                                             scale=scale,
+                                             maxPixels=maxPixels)
+        task.start()
 
     def training_sets(self, polygon_list, buffer):
         #TODO; given a list of polygons specifying test sets, add one band per polygon that has 0s within the polygon
@@ -216,9 +298,9 @@ class EEDatasetBuilder():
         - samples: sampled data points
         - index: (int) iteration number in shapefile's features loop -- this is mostly used for this specific use case
         - name_gcp_bucket: (string) name of the output folder in Cloud Storage
-        - folder_in_gcp_bucket: (string) name of the folder path in the GCP bucker
+        - folder_in_gcp_bucket: (string) name of the folder path in the GCP bucket
         - numPixels: (int) The approximate number of pixels to sample.
-        - scale: (int) scale used in startified sampling
+        - scale: (int) scale used in sampling
         """
         # Set configuration parameters for output image
         task_config = {
@@ -226,7 +308,7 @@ class EEDatasetBuilder():
             'description': f"training_set_MF_AGB_{numPixels}pixels_{scale}scale_{index}",
             'fileNamePrefix': folder_in_gcp_bucket + '/' + f"training_set_MF_AGB_{numPixels}pixels_{scale}scale_{index}"
         }
-        # Export image to GCP bucket
+        # Export table to GCP bucket
         task = ee.batch.Export.table.toCloudStorage(samples,
                                                     **task_config)
         task.start()
@@ -238,8 +320,8 @@ class EEDatasetBuilder():
         Parameters
         ----------
         - shp_asset_path: (ee asset) gridded shapefile (ex: 'projects/ee-margauxmasson21-shapefiles/assets/latin_america_gridded_5000km2')
-        - folder_in_gcp_bucket: (string) name of the folder path in the GCP bucker
-        - name_output_google_drive_folder: (string) name of the folder in Google Drive where the CSV files will be saved
+        - name_gcp_bucket: (string) name of the output folder in Cloud Storage
+        - folder_in_gcp_bucket: (string) name of the folder path in the GCP bucket
         - numPixels: (int) The approximate number of pixels to sample.
         - scale: (int) Scale for the sampling
         -------
@@ -270,83 +352,41 @@ class EEDatasetBuilder():
                                              folder_in_gcp_bucket=folder_in_gcp_bucket,
                                              numPixels=numPixels, scale=scale)
 
-    def merge_samples_csv(self, client, gcp_bucket, gcp_folder_path, name_output_csv_merged_file):
+    def export_tiles_to_cloud_storage(self, image, region, name_gcp_bucket, folder_in_gcp_bucket, index, scale, maxPixels):
         """
-        Merges the exported samples csv into on csv file
-
-        Parameters
-        ----------
-        - client: google cloud client
-        - gcp_bucket: (string) name of the GCP bucket used
-        - gcp_folder_path: (string) name of the folder in the GCP bucket where the final csv will be saved
-        - name_output_csv_merged_file: (string) name of the final merged samples csv file
-        -------
-
-        Returns
-        ----------
-        - url_csv_merged_file_bucket: url where the merged csv file was saved in the GCP bucket
-        -------
-
-        """
-        list_csv_files = []
-        for blob in client.list_blobs(gcp_bucket, prefix=gcp_folder_path):
-            # print(str(blob))
-            file = str(blob).split('/')[-1].split(',')[0]
-            if '.csv' in file:
-                list_csv_files.append(f'gs://{gcp_bucket}/{gcp_folder_path}/{file}')
-
-        list_csv_files.sort()
-        print(f"There are {len(list_csv_files)} csv file to be merged.")
-
-        # merge files
-        dataFrame = pd.concat(map(pd.read_csv, list_csv_files), ignore_index=True)
-        # Create temp folder to store the merged csv file -- will be deleted
-        if not os.path.exists('temp'):
-            os.makedirs('temp')
-        local_path = os.path.join('temp', name_output_csv_merged_file)  # local temp file path
-        pd.DataFrame.to_csv(dataFrame, local_path, index=False)
-        blob_path = f"{gcp_folder_path}/{local_path.split('/')[-1]}"
-        # upload_to_bucket
-        bucket = client.bucket(gcp_bucket)
-        blob = bucket.blob(blob_path)
-        blob.upload_from_filename(local_path)
-        url_csv_merged_file_bucket = f'gs://{gcp_bucket}/{blob_path}'
-
-        # Remove temp directory
-        shutil.rmtree('temp')
-        return url_csv_merged_file_bucket
-
-    def export_tiles_to_drive(self, image, region, name_output_google_drive_folder, index, scale, maxPixels):
-        """
-        Exports tiles images to Google Drive.
+        Exports tiles images to GCP bucket.
 
         Parameters
         ----------
         - image: (ee image )to use as source for the tiles
         - region: A LinearRing, Polygon, or coordinates representing region to export.
-        - description: (string) A human-readable name of the task. May contain letters, numbers, -, _ (no spaces).
-        - name_output_google_drive_folder: (string) name of the Google Drive Folder that the export will reside in.
+        - name_gcp_bucket: (string) name of the output folder in Cloud Storage
+        - folder_in_gcp_bucket: (string) name of the folder path in the GCP bucket
         - index: (int) iteration number in shapefile's features loop -- this is mostly used for this specific use case
         - scale: (int) Resolution in meters per pixel.
         - maxPixels: (int) Restrict the number of pixels in the export.
         -------
         """
-        task = ee.batch.Export.image.toDrive(image=image.clip(region),
-                                             region=region,
-                                             description=f'{name_output_google_drive_folder}_scale{scale}_{index}',
-                                             folder=name_output_google_drive_folder,
-                                             scale=scale,
-                                             maxPixels=maxPixels)
+        # Export image to GCP bucket
+        task = ee.batch.Export.image.toCloudStorage(image=image.clip(region),
+                                                     region=region,
+                                                     bucket=name_gcp_bucket,
+                                                     fileNamePrefix=folder_in_gcp_bucket + '/' + f'inference_tiles_scale{scale}_{index}',
+                                                     description=f'inference_tiles_scale{scale}_{index}',
+                                                     scale=scale,
+                                                     maxPixels=maxPixels)
         task.start()
 
-    def tiles_export(self, shp_asset_path, name_output_google_drive_folder, scale, maxPixels=1e13):
+    def tiles_export(self, shp_asset_path, name_gcp_bucket, folder_in_gcp_bucket, scale, maxPixels=1e13):
         """
-        Exports tiles from the image using a gridded shapefile. Note: the gridded shapefile needs to be created ahead of time with the tiles size desired for this export.
+        Exports tiles from the image using a gridded shapefile.
+        Note: the gridded shapefile needs to be created ahead of time with the tiles size desired for this export.
 
         Parameters
         ----------
         - shp_asset_path: (ee asset) gridded shapefile (ex: 'projects/ee-margauxmasson21-shapefiles/assets/latin_america_gridded_10degrees')
-        - name_output_google_drive_folder: (string) name of the folder in Google Drive where the tiles will be saved
+        - name_gcp_bucket: (string) name of the output folder in Cloud Storage
+        - folder_in_gcp_bucket: (string) name of the folder path in the GCP bucket
         - scale: (int) Scale for the sampling
         - maxPixels: (int) Restrict the number of pixels in the export.
         -------
@@ -359,9 +399,10 @@ class EEDatasetBuilder():
         # Looping through all features from the shapefile (=grids if using a gridded shapefile)
         for i in tqdm(range(nb_features)):
             test = self.image.clip(list_features_assets[i]['geometry'])
-            self.export_tiles_to_drive(test.float(), region=ee.Geometry(list_features_assets[i]['geometry']),
-                                       name_output_google_drive_folder=name_output_google_drive_folder,
-                                       index=i, scale=scale, maxPixels=maxPixels)
+            self.export_tiles_to_cloud_storage(test.float(), region=ee.Geometry(list_features_assets[i]['geometry']),
+                                              name_gcp_bucket=name_gcp_bucket,
+                                              folder_in_gcp_bucket=folder_in_gcp_bucket,
+                                              index=i, scale=scale, maxPixels=maxPixels)
 
 ################################
 #TODO: Anika I think we can incorporate all the below functionality into the above. For example the above code
