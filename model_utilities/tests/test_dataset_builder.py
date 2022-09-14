@@ -22,12 +22,12 @@ filter_dict = {'forest_non_forest': {'date_range': ['2010-01-01', '2010-12-31']}
 covariates_image_list = ['ecoregion', 'terrain', 'bioclim', 'terraclimate', 'soildata']
 
 ##### 2. Actions to run #####
-run_export_csv_samples = False
-run_export_inference_tiles = False
-run_export_image_as_ee_asset = True
+run_export_csv_samples = True
+run_export_inference_tiles = True
+run_export_image_as_ee_asset = False
 
 ##### 3. "Global Variables #####
-gcp_bucket = 'earthshot-science'
+gcp_bucket = 'science-team'
 gcp_folder_name = 'potential-mature-forest-biomass'
 samples_folder_name = 'samples_csv'
 tiles_folder_name = 'inference_tiles'
