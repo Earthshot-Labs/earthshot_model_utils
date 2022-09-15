@@ -39,6 +39,7 @@ class EEDatasetBuilder():
         'forest_gain':{'distance': int, meters, distance to forest gain},
         'roads':{'distance':int, meters, distance to roads},
         'fire':{'year':str, 'YYYY', fire mask will be calculated from 2001 to this year}
+        'protected_areas': {}, protected areas mask will be calculated from WDPA: World Database on Protected Areas
 
         -------
 
@@ -157,7 +158,7 @@ class EEDatasetBuilder():
 
         Parameters
         ----------
-        covariates: list of strings, taken from ['ecoregion', 'terraclimate', 'soildata', 'bioclim',
+        covariates: list of strings, taken from ['ecoregion', 'terraclimate', 'soil', 'bioclim',
         'terrain']
 
         -------
@@ -185,44 +186,20 @@ class EEDatasetBuilder():
                 terraclimate_mean = terraclimate_dataset.reduce(ee.Reducer.mean())
                 #Add all bands to output
                 self.image = self.image.addBands(terraclimate_mean.updateMask(mask))
-            if covariate == 'soildata':
-                # 1. Soil Bulk
-                soil_bulk_dataset = ee.Image("OpenLandMap/SOL/SOL_BULKDENS-FINEEARTH_USDA-4A1H_M/v02")
-                # Renaming the bands of the soil data layers because they all have the same names otherwise
-                soil_bulk_dataset = self.rename_bands(soil_bulk_dataset, 'soil_bulk')
-                self.image = self.image.addBands(soil_bulk_dataset.updateMask(mask))
-
-                # 2. Clay Content
-                clay_content_dataset = ee.Image("OpenLandMap/SOL/SOL_CLAY-WFRACTION_USDA-3A1A1A_M/v02")
-                # Renaming the bands of the soil data layers because they all have the same names otherwise
-                clay_content_dataset = self.rename_bands(clay_content_dataset, 'clay_content')
-                self.image = self.image.addBands(clay_content_dataset.updateMask(mask))
-
-                # 3. Soil Organic Carbon Content
-                soil_organic_content_dataset = ee.Image("OpenLandMap/SOL/SOL_ORGANIC-CARBON_USDA-6A1C_M/v02")
-                # Renaming the bands of the soil data layers because they all have the same names otherwise
-                soil_organic_content_dataset = self.rename_bands(soil_organic_content_dataset, 'soil_organic_content')
-                self.image = self.image.addBands(soil_organic_content_dataset.updateMask(mask))
-
-                # 4. Soil pH in H2O
-                soil_ph_h20_dataset = ee.Image("OpenLandMap/SOL/SOL_PH-H2O_USDA-4C1A2A_M/v02")
-                soil_ph_h20_dataset = self.rename_bands(soil_ph_h20_dataset, 'soil_ph_h20')
-                self.image = self.image.addBands(soil_ph_h20_dataset.updateMask(mask))
-
-                # 5. Sand Content
-                sand_content_dataset = ee.Image("OpenLandMap/SOL/SOL_SAND-WFRACTION_USDA-3A1A1A_M/v02")
-                sand_content_dataset = self.rename_bands(sand_content_dataset, 'sand_content')
-                self.image = self.image.addBands(sand_content_dataset.updateMask(mask))
-
-                # 6. Soil Water Content at 33kPa (Field Capacity)
-                soil_water_content_dataset = ee.Image("OpenLandMap/SOL/SOL_WATERCONTENT-33KPA_USDA-4B1C_M/v01")
-                soil_water_content_dataset = self.rename_bands(soil_water_content_dataset, 'soil_water_content')
-                self.image = self.image.addBands(soil_water_content_dataset.updateMask(mask))
-
-                # 7. Soil Texture Class (USDA System)
-                soil_texture_class_dataset = ee.Image("OpenLandMap/SOL/SOL_TEXTURE-CLASS_USDA-TT_M/v02")
-                soil_texture_class_dataset = self.rename_bands(soil_texture_class_dataset, 'soil_texture_class')
-                self.image = self.image.addBands(soil_texture_class_dataset.updateMask(mask))
+            if covariate == 'soil':
+                band_asset_dict = {'bulk_dens': 'SOL_BULKDENS-FINEEARTH_USDA-4A1H_M/v02',
+                                   'clay_content': 'SOL_CLAY-WFRACTION_USDA-3A1A1A_M/v02',
+                                   'soil_organic_content': 'SOL_ORGANIC-CARBON_USDA-6A1C_M/v02',
+                                   'soil_ph_h20': 'SOL_PH-H2O_USDA-4C1A2A_M/v02',
+                                   'sand_content': 'SOL_SAND-WFRACTION_USDA-3A1A1A_M/v02',
+                                   'soil_water_content': 'SOL_WATERCONTENT-33KPA_USDA-4B1C_M/v01',
+                                   'soil_texture_class': 'SOL_TEXTURE-CLASS_USDA-TT_M/v02',
+                                   }
+                for key in band_asset_dict:
+                    temp_dataset = ee.Image("OpenLandMap/SOL/" + band_asset_dict[key])
+                    # Renaming the bands of the soil data layers because they all have the same names otherwise
+                    temp_dataset = self.rename_bands(temp_dataset, key)
+                    self.image = self.image.addBands(temp_dataset.updateMask(mask))
 
             if covariate == 'bioclim':
                 bioclim_image = ee.Image('WORLDCLIM/V1/BIO')

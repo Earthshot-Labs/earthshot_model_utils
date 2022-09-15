@@ -19,7 +19,7 @@ filter_dict = {'forest_non_forest': {'date_range': ['2010-01-01', '2010-12-31']}
                 # 'roads': {'distance': 5000},
                 # 'fire': {'year': 2010}
                }
-covariates_image_list = ['ecoregion', 'terrain', 'bioclim', 'terraclimate', 'soildata']
+covariates_image_list = ['ecoregion', 'terrain', 'bioclim', 'terraclimate', 'soil']
 
 ##### 2. Actions to run #####
 run_export_csv_samples = False
