@@ -14,8 +14,6 @@ setup(
                       'seaborn',
                       'ee',
                       'scipy',
-                      'random',
-                      'bisect',
                       ],
 
     classifiers=[
