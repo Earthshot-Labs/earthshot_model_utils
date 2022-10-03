@@ -98,7 +98,7 @@ class GrowthCurveFit():
         -------
 
         """
-        age_years = np.arange(1, years_predict + 1, 1).reshape((years_predict, 1))
+        age_years = np.arange(0, years_predict + 1, 1).reshape((years_predict, 1))
         y_max_array = np.ones_like(age_years) * y_max_agb_bgb
 
         if self.curve_formula == 'chapman_richards_set_ymax':
@@ -163,9 +163,13 @@ class GrowthCurveFit():
 def ensemble_ci(growth_curve_fit):
     # combine dict of dfs to single df
     entire_ensemble = pd.concat(growth_curve_fit.monte_carlo_dfs.values(), axis = 1, ignore_index=True)
+    #  track number of ensemble memebers before filtering
+    n_members_orig = entire_sensemble.shape[1]
     #filter out unrealistic sims
     entire_ensemble = entire_ensemble.loc[:, entire_ensemble.iloc[0] < entire_ensemble.iloc[99]] 
-    
+    # track number of ensemble members filtered
+    print('number ensemble members removed: ', entire_ensemble.shape[1] - n_members_orig)
+
     ensemble_deciles = pd.DataFrame({})
     ensemble_deciles[[0.025,0.1,0.2,0.3,0.4,0.5,0.6,0.7,0.8,0.9,0.975]] = entire_ensemble.quantile(q=[0.025,0.1,0.2,0.3,0.4,0.5,0.6,0.7,0.8,0.9,0.975], axis=1).transpose()
     ensemble_deciles['Age'] = ensemble_deciles.index
@@ -174,27 +178,27 @@ def ensemble_ci(growth_curve_fit):
 
 
 # eventually should add ensemble_ci to class so you don't pass it to function separately
-def extract_ensemble_member(growth_curve_fit, ensemble_ci, pctile):
+def extract_ensemble_member(growth_curve_fit, ensemble_ci, pctile, thresh=np.nan, use_thresh=False):
     import math
-    # pick 3 reference points in the curve and find closest ensemble member to those reference points
-    # this anchors the ensemble member over the first 25 years of growth which is probably the most important part
-    # range increases for each reference point to allow function to actually find a curve
-    # if multiple members are returned then select the first one
-    ref_pt_1 = ensemble_ci[pctile].iloc[5]
-    ref_pt_2 = ensemble_ci[pctile].iloc[15]
-    ref_pt_3 = ensemble_ci[pctile].iloc[25]
 
+    # make df that is distance between ensemble member and ensemble_ci for each yr first 30 yrs
     entire_ensemble = pd.concat(growth_curve_fit.monte_carlo_dfs.values(), axis = 1, ignore_index=True)
     entire_ensemble = entire_ensemble.loc[:, entire_ensemble.iloc[0] < entire_ensemble.iloc[99]]
-    sub_ensemble = entire_ensemble.loc[:, ((entire_ensemble.iloc[25] < math.ceil(ref_pt_3)) & (entire_ensemble.iloc[25] > math.floor(ref_pt_3)))]
-    if sub_ensemble.shape[1] > 1:
-        sub_ensemble_1 = sub_ensemble.loc[:, (sub_ensemble.iloc[15] < math.ceil(ref_pt_2)+1) & (sub_ensemble.iloc[15] > math.floor(ref_pt_2)-1)]
-    if sub_ensemble_1.shape[1] > 1:
-        sub_ensemble_2 = sub_ensemble_1.loc[:, (sub_ensemble_1.iloc[5] < math.ceil(ref_pt_1)+3) & (sub_ensemble_1.iloc[5] > math.floor(ref_pt_1)-3)]
-        # if this restrics to 0 curves go back to previous set
-        if ~(sub_ensemble_2.shape[1] >= 1):
-            sub_ensemble = sub_ensemble_1
-    if sub_ensemble.shape[1] > 1:
-        sub_ensemble = sub_ensemble.iloc[:,0]
+    
+    # if we want to select from a certain maximum that is closest to the ensemble ci
+    if use_thresh == True:
+        entire_ensemble = entire_ensemble.loc[:, entire_ensemble.iloc[99] > thresh]
+
+    # calculate difference at each time step between ensemble member and ci percentile
+    diffdf = entire_ensemble.sub(ensemble_ci[pctile], axis='index')
+
+    # calculate sum of squares over years 0-30 (key for reforestation projects)
+    ss = (diffdf.iloc[0:30,:]**2).sum()
+    # find index that minimizes ss
+    min_index = ss.index[ss == ss.min()].values[0]
+
+    # select ensemble member that minimized ss 
+    # (note it's iloc not loc b/c some cols were filtered so index and col name are not the same)
+    sub_ensemble = entire_ensemble.iloc[:,min_index]
 
     return sub_ensemble
