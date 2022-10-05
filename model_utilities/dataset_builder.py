@@ -233,10 +233,56 @@ class EEDatasetBuilder():
                                              maxPixels=maxPixels)
         task.start()
 
-    def training_sets(self, polygon_list, buffer):
-        #TODO; given a list of polygons specifying test sets, add one band per polygon that has 0s within the polygon
-        # and buffer and ones elsewhere
-        0
+    def test_set(self, feature_collection, buffer=None, test_set_name='test_set'):
+        """
+        This function adds a band to the image representing test sets. All test sets are assumed to be supplied as
+        polygons in the Earth Engine feature_collection, which should be a public asset on Earth Engine. It's assumed
+        that none of the test polygons overlap, and further, that if they are buffered, they will still not overlap.
+        The result is a new band on the image, where the pixels in each (buffered) test area have sequential integer
+        values, and other pixels are masked.
+        
+        When the image is sampled, this band can be used to identify samples that are not in the possibly buffered
+        test set, meaning they can be in the training set for that test set. The test set itself may be sampled
+        separately, especially if an exhaustive (all pixels) sample is to be taken.
+
+        Parameters
+        ----------
+        feature_collection: A accessible feature collection asset in Google Earth Engine: polygons that are the test set
+        buffer: spatial buffer to include around the test set in meters
+        test_set_name: string, name for the new band added here
+
+        Returns
+        -------
+
+        """
+        #Create feature collection from asset
+        test_polygons = ee.FeatureCollection(feature_collection)
+
+        #Buffer the test set polygons if requested
+        if buffer is not None:
+            def buffer_by(size):
+                return lambda feature: feature.buffer(size)
+
+            test_polygons = test_polygons.map(buffer_by(buffer))
+
+        #Set a property with consecutive numbers for each polygon, so they can be painted on a raster
+        n_polys = test_polygons.size().getInfo()
+        poly_list = list(range(n_polys))
+        test_polygons = test_polygons.set('test_set', poly_list)
+
+        #Paint the polygons on to an image and add it as a band
+        #This creates a raster with numbers on pixels in the (buffered) test sets and masked pixels elsewhere
+        #TODO: understand why the numbering doesn't exactly follow 'test_set', (e.g. it starts at 1 and not 0),
+        # but having numbered pixels
+        # in the test areas only seems to work if that argument is supplied here
+        test_mask = ee.Image().paint(test_polygons, 'test_set').rename(test_set_name)
+
+        # If an image isn't already created, make an empty image and add a band.
+        # Otherwise, add to the existing image
+        if self.image is None:
+            self.image = test_mask
+        else:
+            self.image = self.image.addBands(srcImg=test_mask, names=[test_set_name])
 
     def load_ee_asset_shapefile(self, shp_asset_path):
         """
