@@ -1,0 +1,301 @@
+ecozone,continent,forest_type,r0,r0_low,r0_high,K20,K20_low,K20_high,r20,r20_low,r20_high,Kmax,Kmax_low,Kmax_high,root_shoot_break,rs_young,rs_old,cap_uncertainty_type,rate_uncertainty_type
+boreal coniferous,asia,coniferous,1.0,0.5,1.9,5.0,2.6,9.5,1.0,0.5,1.9,40.0,21.1,76.0,75,0.39,0.24,default,default
+boreal coniferous,asia,natural,0.6,0.32,1.14,62.9,33.11,119.51,0.6,0.32,1.14,62.9,33.11,119.51,75,0.39,0.24,default,default
+boreal coniferous,europe,coniferous,1.0,0.5,1.9,5.0,2.6,9.5,1.0,0.5,1.9,40.0,21.1,76.0,75,0.39,0.24,default,default
+boreal coniferous,europe,natural,0.6,0.32,1.14,62.9,33.11,119.51,0.6,0.32,1.14,62.9,33.11,119.51,75,0.39,0.24,default,default
+boreal coniferous,north america,coniferous,1.0,0.5,1.9,45.0,40.0,50.0,1.0,0.5,1.9,45.0,40.0,50.0,75,0.39,0.24,default and range,default and range
+boreal coniferous,north america,natural,0.6,0.32,1.14,62.9,33.11,119.51,0.6,0.32,1.14,62.9,33.11,119.51,75,0.39,0.24,default,default
+boreal coniferous,oceania,coniferous,1.0,0.5,1.9,5.0,2.6,9.5,1.0,0.5,1.9,40.0,21.1,76.0,75,0.39,0.24,default,default
+boreal coniferous,oceania,coniferous,1.0,0.5,1.9,5.0,2.6,9.5,1.0,0.5,1.9,40.0,21.1,76.0,75,0.39,0.24,default,default
+boreal coniferous,oceania,natural,0.6,0.32,1.14,62.9,33.11,119.51,0.6,0.32,1.14,62.9,33.11,119.51,75,0.39,0.24,default,default
+boreal mountain system,asia,coniferous,1.0,0.5,1.9,5.0,2.6,9.5,1.0,0.5,1.9,40.0,21.1,76.0,75,0.39,0.24,default,default
+boreal mountain system,asia,natural,1.0,0.53,1.9,1.9,1.0,3.61,1.3,0.68,2.47,100.0,52.63,190.0,75,0.39,0.24,default,default
+boreal mountain system,europe,coniferous,1.0,0.5,1.9,5.0,2.6,9.5,1.0,0.5,1.9,40.0,21.1,76.0,75,0.39,0.24,,
+boreal mountain system,europe,natural,1.0,0.53,1.9,1.9,1.0,3.61,1.3,0.68,2.47,100.0,52.63,190.0,75,0.39,0.24,default,default
+boreal mountain system,north america,coniferous,1.0,0.5,1.9,5.0,2.6,9.5,1.0,0.5,1.9,40.0,21.1,76.0,75,0.39,0.24,,
+boreal mountain system,north america,natural,1.0,0.53,1.9,1.9,1.0,3.61,1.3,0.68,2.47,100.0,52.63,190.0,75,0.39,0.24,default,default
+boreal mountain system,oceania,coniferous,1.0,0.5,1.9,5.0,2.6,9.5,1.0,0.5,1.9,40.0,21.1,76.0,75,0.39,0.24,default,default
+boreal mountain system,oceania,coniferous,1.0,0.5,1.9,5.0,2.6,9.5,1.0,0.5,1.9,40.0,21.1,76.0,75,0.39,0.24,default,default
+boreal mountain system,oceania,natural,1.0,0.53,1.9,1.9,1.0,3.61,1.3,0.68,2.47,100.0,52.63,190.0,75,0.39,0.24,default,default
+boreal tundra woodland,asia,coniferous,0.4,0.2,0.8,5.0,2.6,9.5,0.4,0.2,0.8,25.0,13.2,47.5,75,0.39,0.24,default,default
+boreal tundra woodland,asia,natural,0.4,0.3,0.5,63.7,33.53,121.03,0.4,0.3,0.5,104.2,54.84,197.98,75,0.39,0.24,default,range of values
+boreal tundra woodland,europe,coniferous,0.4,0.2,0.8,5.0,2.6,9.5,0.4,0.2,0.8,25.0,13.2,47.5,75,0.39,0.24,,
+boreal tundra woodland,europe,natural,0.4,0.3,0.5,63.7,33.53,121.03,0.4,0.3,0.5,104.2,54.84,197.98,75,0.39,0.24,default,range of values
+boreal tundra woodland,north america,coniferous,0.4,0.2,0.8,5.0,2.6,9.5,0.4,0.2,0.8,25.0,13.2,47.5,75,0.39,0.24,,
+boreal tundra woodland,north america,natural,0.4,0.3,0.5,63.7,33.53,121.03,0.4,0.3,0.5,104.2,54.84,197.98,75,0.39,0.24,default,range of values
+boreal tundra woodland,oceania,coniferous,0.4,0.2,0.8,5.0,2.6,9.5,0.4,0.2,0.8,25.0,13.2,47.5,75,0.39,0.24,default,default
+boreal tundra woodland,oceania,coniferous,0.4,0.2,0.8,5.0,2.6,9.5,0.4,0.2,0.8,25.0,13.2,47.5,75,0.39,0.24,default,default
+boreal tundra woodland,oceania,natural,0.4,0.3,0.5,63.7,33.53,121.03,0.4,0.3,0.5,104.2,54.84,197.98,75,0.39,0.24,default,range of values
+subtropical dry forest,africa,broadleaf,10.0,4.0,20.0,30.0,15.8,57.0,10.0,4.0,20.0,70.0,36.8,133.0,125,0.44,0.44,range and default,range and default
+subtropical dry forest,africa,eucalyptus sp.,13.0,6.8,24.7,68.72,36.2,130.6,13.0,6.8,24.7,68.72,36.2,130.6,125,0.44,0.44,,default
+subtropical dry forest,africa,natural,2.4,1.26,4.56,65.2,38.1,92.3,1.8,0.95,3.42,65.2,38.1,92.3,125,0.44,0.44,standard deviation,default
+subtropical dry forest,africa,pinus sp.,8.0,4.2,15.2,20.0,10.5,38.0,10.0,5.3,19.0,60.0,31.6,114.0,125,0.44,0.44,default,default
+subtropical dry forest,asia,broadleaf,7.0,2.0,13.0,69.45,36.6,132.0,7.0,2.0,13.0,137.64,72.4,261.5,125,0.44,0.44,range and standard deviation,range and standard deviation
+subtropical dry forest,asia,coniferous,7.0,2.0,13.0,63.18,33.3,120.0,7.0,2.0,13.0,127.61,67.2,242.5,125,0.44,0.44,range and standard deviation,range and standard deviation
+subtropical dry forest,asia,cunninghamia sp.,7.0,2.0,13.0,62.96,33.1,119.6,7.0,2.0,13.0,148.6,78.2,282.3,125,0.44,0.44,range and standard deviation,range and standard deviation
+subtropical dry forest,asia,eucalyptus sp.,15.0,5.0,25.0,68.72,36.2,130.6,15.0,5.0,25.0,68.72,36.2,130.6,125,0.44,0.44,,range and standard deviation
+subtropical dry forest,asia,natural,6.0,3.16,11.4,70.9,44.7,97.1,1.5,0.79,2.85,70.9,44.7,97.1,125,0.44,0.44,standard deviation,default
+subtropical dry forest,asia,picea abies,7.0,2.0,13.0,138.23,72.8,262.6,7.0,2.0,13.0,138.23,72.8,262.6,125,0.44,0.44,range and standard deviation,
+subtropical dry forest,asia,pinus massoniana,7.0,2.0,13.0,54.75,28.8,104.0,7.0,2.0,13.0,163.45,86.0,310.6,125,0.44,0.44,range and standard deviation,range and standard deviation
+subtropical dry forest,north america,eucalyptus sp.,20.0,6.0,30.0,110.0,57.9,209.0,20.0,6.0,30.0,110.0,57.9,209.0,125,0.34,0.35,range and default,range and default
+subtropical dry forest,north america,natural,4.0,2.11,7.6,115.9,69.7,162.1,1.0,0.53,1.9,115.9,69.7,162.1,125,0.34,0.35,standard deviation,default
+subtropical dry forest,north america,other broadleaf,10.0,3.0,12.0,60.0,31.6,114.0,10.0,3.0,12.0,60.0,31.6,114.0,125,0.34,0.35,range and default,range and default
+subtropical dry forest,north america,pinus sp.,7.0,4.0,10.0,110.0,57.9,209.0,7.0,4.0,10.0,110.0,57.9,209.0,125,0.34,0.35,range and default,range and default
+subtropical dry forest,north america,tectona grandis,8.0,4.0,12.0,90.0,47.4,171.0,8.0,4.0,12.0,90.0,47.4,171.0,125,0.34,0.35,range and default,range and default
+subtropical dry forest,oceania,broadleaf,7.0,2.0,13.0,69.45,36.6,132.0,7.0,2.0,13.0,137.64,72.4,261.5,125,0.44,0.44,range and standard deviation,range and standard deviation
+subtropical dry forest,oceania,coniferous,7.0,2.0,13.0,63.18,33.3,120.0,7.0,2.0,13.0,127.61,67.2,242.5,125,0.44,0.44,range and standard deviation,range and standard deviation
+subtropical dry forest,oceania,cunninghamia sp.,7.0,2.0,13.0,62.96,33.1,119.6,7.0,2.0,13.0,148.6,78.2,282.3,125,0.44,0.44,range and standard deviation,range and standard deviation
+subtropical dry forest,oceania,eucalyptus sp.,15.0,5.0,25.0,68.72,36.2,130.6,15.0,5.0,25.0,68.72,36.2,130.6,125,0.44,0.44,,range and standard deviation
+subtropical dry forest,oceania,natural,7.0,3.68,13.3,70.9,44.7,97.1,2.0,1.05,3.8,70.9,44.7,97.1,125,0.44,0.44,standard deviation,default
+subtropical dry forest,oceania,picea abies,7.0,2.0,13.0,138.23,72.8,262.6,7.0,2.0,13.0,138.23,72.8,262.6,125,0.44,0.44,range and standard deviation,
+subtropical dry forest,oceania,pinus massoniana,7.0,2.0,13.0,54.75,28.8,104.0,7.0,2.0,13.0,163.45,86.0,310.6,125,0.44,0.44,range and standard deviation,range and standard deviation
+subtropical dry forest,south america,eucalyptus sp.,20.0,6.0,30.0,110.0,57.9,209.0,20.0,6.0,30.0,110.0,57.9,209.0,125,0.34,0.35,range and default,range and default
+subtropical dry forest,south america,natural,4.0,2.11,7.6,115.9,69.7,162.1,1.0,0.53,1.9,115.9,69.7,162.1,125,0.34,0.35,standard deviation,default
+subtropical dry forest,south america,other broadleaf,10.0,3.0,12.0,60.0,31.6,114.0,10.0,3.0,12.0,60.0,31.6,114.0,125,0.34,0.35,range and default,range and default
+subtropical dry forest,south america,pinus sp.,7.0,4.0,10.0,110.0,57.9,209.0,7.0,4.0,10.0,110.0,57.9,209.0,125,0.34,0.35,range and default,range and default
+subtropical dry forest,south america,tectona grandis,8.0,4.0,12.0,90.0,47.4,171.0,8.0,4.0,12.0,90.0,47.4,171.0,125,0.34,0.35,range and default,range and default
+subtropical humid forest,africa,natural,2.5,1.32,4.75,54.1,33.5,74.7,1.0,0.53,1.9,54.1,33.5,74.7,125,0.23,0.23,standard deviation,default
+subtropical humid forest,asia,broadleaf,8.0,4.2,15.2,180.0,94.7,342.0,8.0,4.2,15.2,180.0,94.7,342.0,125,0.23,0.25,default,default
+subtropical humid forest,asia,natural,2.5,1.7,3.3,258.4,130.3,386.5,1.0,0.1,1.9,258.4,130.3,386.5,125,0.23,0.25,standard deviation,standard deviation
+subtropical humid forest,asia,other,8.0,4.2,15.2,100.0,52.6,190.0,8.0,4.2,15.2,100.0,52.6,190.0,125,0.23,0.25,default,default
+subtropical humid forest,north america,eucalyptus sp.,20.0,6.0,32.0,140.0,73.7,266.0,20.0,6.0,32.0,140.0,73.7,266.0,125,0.18,0.28,range and default,range and default
+subtropical humid forest,north america,natural,2.5,1.32,4.75,84.5,41.6,127.4,1.0,0.53,1.9,84.5,41.6,127.4,125,0.18,0.28,standard deviation,default
+subtropical humid forest,north america,other broadleaf,10.0,3.0,12.0,100.0,52.6,190.0,10.0,3.0,12.0,100.0,52.6,190.0,125,0.18,0.28,range and default,range and default
+subtropical humid forest,north america,pinus sp.,7.0,4.0,10.0,270.0,142.1,513.0,7.0,4.0,10.0,270.0,142.1,513.0,125,0.18,0.28,range and default,range and default
+subtropical humid forest,north america,tectona grandis,8.0,4.0,12.0,120.0,63.2,228.0,8.0,4.0,12.0,120.0,63.2,228.0,125,0.18,0.28,range and default,range and default
+subtropical humid forest,oceania,broadleaf,8.0,4.2,15.2,180.0,94.7,342.0,8.0,4.2,15.2,180.0,94.7,342.0,125,0.23,0.25,default,default
+subtropical humid forest,oceania,natural,2.5,1.7,3.3,258.4,130.3,386.5,1.0,0.1,1.9,258.4,130.3,386.5,125,0.23,0.25,,
+subtropical humid forest,oceania,other,8.0,4.2,15.2,100.0,52.6,190.0,8.0,4.2,15.2,100.0,52.6,190.0,125,0.23,0.25,default,default
+subtropical humid forest,south america,eucalyptus sp.,20.0,6.0,32.0,140.0,73.7,266.0,20.0,6.0,32.0,140.0,73.7,266.0,125,0.18,0.28,range and default,range and default
+subtropical humid forest,south america,natural,2.5,1.32,4.75,84.5,41.6,127.4,1.0,0.53,1.9,84.5,41.6,127.4,125,0.18,0.28,standard deviation,default
+subtropical humid forest,south america,other broadleaf,10.0,3.0,12.0,100.0,52.6,190.0,10.0,3.0,12.0,100.0,52.6,190.0,125,0.18,0.28,range and default,range and default
+subtropical humid forest,south america,pinus sp.,7.0,4.0,10.0,270.0,142.1,513.0,7.0,4.0,10.0,270.0,142.1,513.0,125,0.18,0.28,range and default,range and default
+subtropical humid forest,south america,tectona grandis,8.0,4.0,12.0,120.0,63.2,228.0,8.0,4.0,12.0,120.0,63.2,228.0,125,0.18,0.28,range and default,range and default
+subtropical mountain system,africa,broadleaf,10.0,5.3,19.0,70.0,40.0,100.0,10.0,5.3,19.0,105.0,60.0,150.0,125,0.31,0.25,default and range,default and range
+subtropical mountain system,africa,natural,2.5,1.32,4.75,35.1,12.9,57.3,0.5,0.26,0.95,35.1,12.9,57.3,125,0.23,0.23,standard deviation,default
+subtropical mountain system,africa,pinus sp.,10.0,5.3,19.0,25.0,10.0,40.0,10.0,5.3,19.0,65.0,30.0,100.0,125,0.22,0.23,default and range,default and range
+subtropical mountain system,asia,broadleaf,5.0,1.0,10.0,72.0,40.0,104.0,5.0,1.0,10.0,72.0,40.0,104.0,125,0.31,0.25,range,range
+subtropical mountain system,asia,natural,2.5,2.47,2.53,155.2,113.5,196.9,0.5,0.2,0.8,155.2,113.5,196.9,125,0.23,0.23,standard deviation,standard deviation
+subtropical mountain system,north america,eucalyptus sp.,10.0,8.0,18.0,75.0,30.0,120.0,10.0,8.0,18.0,75.0,30.0,120.0,125,0.31,0.25,range,range
+subtropical mountain system,north america,natural,2.5,1.32,4.75,74.6,34.5,114.7,0.5,0.26,0.95,74.6,34.5,114.7,125,0.23,0.23,standard deviation,default
+subtropical mountain system,north america,other broadleaf,4.0,2.1,7.6,55.0,30.0,80.0,4.0,2.1,7.6,55.0,30.0,80.0,125,0.31,0.25,default and range,default and range
+subtropical mountain system,north america,pinus sp.,10.0,5.3,19.0,115.0,60.0,170.0,10.0,5.3,19.0,115.0,60.0,170.0,125,0.22,0.23,default and range,default and range
+subtropical mountain system,north america,tectona grandis,2.0,1.1,3.8,80.0,30.0,130.0,2.0,1.1,3.8,80.0,30.0,130.0,125,0.31,0.25,default and range,default and range
+subtropical mountain system,oceania,broadleaf,5.0,1.0,10.0,72.0,40.0,104.0,5.0,1.0,10.0,72.0,40.0,104.0,125,0.31,0.25,range,range
+subtropical mountain system,oceania,natural,2.5,2.47,2.53,155.2,113.5,196.9,0.5,0.2,0.8,155.2,113.5,196.9,125,0.23,0.23,,
+subtropical mountain system,south america,eucalyptus sp.,10.0,8.0,18.0,75.0,30.0,120.0,10.0,8.0,18.0,75.0,30.0,120.0,125,0.31,0.25,range,range
+subtropical mountain system,south america,natural,2.5,1.32,4.75,74.6,34.5,114.7,0.5,0.26,0.95,74.6,34.5,114.7,125,0.23,0.23,standard deviation,default
+subtropical mountain system,south america,other broadleaf,4.0,2.1,7.6,55.0,30.0,80.0,4.0,2.1,7.6,55.0,30.0,80.0,125,0.31,0.25,default and range,default and range
+subtropical mountain system,south america,pinus sp.,10.0,5.3,19.0,115.0,60.0,170.0,10.0,5.3,19.0,115.0,60.0,170.0,125,0.22,0.23,default and range,default and range
+subtropical mountain system,south america,tectona grandis,2.0,1.1,3.8,80.0,30.0,130.0,2.0,1.1,3.8,80.0,30.0,130.0,125,0.31,0.25,default and range,default and range
+subtropical steppe,africa,broadleaf,15.0,7.9,28.5,20.0,10.5,38.0,10.0,5.3,19.0,20.0,10.5,38.0,125,1.34,1.34,default,default
+subtropical steppe,africa,eucalyptus sp.,5.0,3.0,7.0,15.0,7.9,28.5,8.0,5.0,14.0,15.0,7.9,28.5,125,1.34,1.34,range and default,range and default
+subtropical steppe,africa,natural,1.2,0.63,2.28,50.5,26.6,74.4,0.9,0.47,1.71,50.5,26.6,74.4,125,1.34,1.34,standard deviation,default
+subtropical steppe,africa,pinus sp.,3.0,0.5,6.0,15.0,7.9,28.5,2.5,1.3,4.8,20.0,10.5,38.0,125,1.34,1.34,default,range and default
+subtropical steppe,asia,broadleaf,6.0,1.0,12.0,10.0,5.3,19.0,6.0,1.0,12.0,80.0,42.1,152.0,125,2.16,2.16,range and default,range and default
+subtropical steppe,asia,coniferous,6.0,1.0,12.0,110.0,100.0,120.0,6.0,1.0,12.0,20.0,10.5,38.0,125,2.16,2.16,range and default,range
+subtropical steppe,asia,natural,5.0,2.63,9.5,41.6,16.9,66.3,1.3,0.68,2.47,41.6,16.9,66.3,125,1.34,1.34,standard deviation,default
+subtropical steppe,north america,eucalyptus sp.,20.0,10.5,38.0,20.0,10.5,38.0,20.0,10.5,38.0,60.0,31.6,114.0,125,1.34,1.34,default,default
+subtropical steppe,north america,natural,4.0,2.11,7.6,44.0,18.0,70.0,1.0,0.53,1.9,44.0,18.0,70.0,125,1.34,1.34,standard deviation,default
+subtropical steppe,north america,pinus sp.,5.0,2.6,9.5,60.0,31.6,114.0,5.0,2.6,9.5,60.0,31.6,114.0,125,1.34,1.34,default,default
+subtropical steppe,oceania,broadleaf,6.0,1.0,12.0,10.0,5.3,19.0,6.0,1.0,12.0,80.0,42.1,152.0,125,2.16,2.16,range and default,range and default
+subtropical steppe,oceania,coniferous,6.0,1.0,12.0,110.0,100.0,120.0,6.0,1.0,12.0,20.0,10.5,38.0,125,2.16,2.16,range and default,range
+subtropical steppe,oceania,natural,2.0,1.05,3.8,41.6,16.9,66.3,1.0,0.53,1.9,41.6,16.9,66.3,125,1.34,1.34,standard deviation,default
+subtropical steppe,south america,eucalyptus sp.,20.0,10.5,38.0,20.0,10.5,38.0,20.0,10.5,38.0,60.0,31.6,114.0,125,1.34,1.34,default,default
+subtropical steppe,south america,natural,4.0,2.11,7.6,44.0,18.0,70.0,1.0,0.53,1.9,44.0,18.0,70.0,125,1.34,1.34,standard deviation,default
+subtropical steppe,south america,pinus sp.,5.0,2.6,9.5,60.0,31.6,114.0,5.0,2.6,9.5,60.0,31.6,114.0,125,1.34,1.34,default,default
+temperate continental,asia,larix sp.,4.0,2.1,7.6,57.49,30.3,109.2,4.0,2.1,7.6,112.88,59.4,214.5,125,0.48,0.19,default and standard deviation,default and standard deviation
+temperate continental,asia,natural,3.3,3.25,3.35,90.9,70.69,111.12,3.25,3.35,90.9,116.0,106.82,125.19,125,0.48,0.19,95% confidence interval,default
+temperate continental,asia,pinus koraiensis,4.0,2.1,7.6,58.23,30.6,110.6,4.0,2.1,7.6,132.13,69.5,251.0,125,0.48,0.19,default and standard deviation,default and standard deviation
+temperate continental,asia,pinus sylvestris,4.0,2.1,7.6,18.0,9.5,34.2,4.0,2.1,7.6,58.6,30.8,111.3,125,0.48,0.19,default and standard deviation,default and standard deviation
+temperate continental,asia,pinus tabuliformis,4.0,2.1,7.6,34.02,17.9,64.6,4.0,2.1,7.6,59.39,31.3,112.8,125,0.48,0.19,default and standard deviation,default and standard deviation
+temperate continental,asia,poplar sp.,4.0,2.1,7.6,66.74,35.1,126.8,4.0,2.1,7.6,66.74,35.1,126.8,125,0.48,0.19,,default and standard deviation
+temperate continental,asia,robinia pseudoacacia,4.0,2.1,7.6,29.44,15.5,55.9,4.0,2.1,7.6,54.46,28.7,103.5,125,0.48,0.19,default and standard deviation,default and standard deviation
+temperate continental,europe,natural,3.3,3.25,3.35,51.6,27.16,98.04,3.25,3.35,51.6,162.0,85.26,307.8,125,0.48,0.19,default,default
+temperate continental,north america,abies sp.,4.0,2.1,7.6,5.62,3.0,10.7,4.0,2.1,7.6,21.49,11.3,40.8,125,0.24,0.24,default and standard deviation,default and standard deviation
+temperate continental,north america,natural,3.3,3.25,3.35,46.0,0.1,145.5,3.6,0.1,18.6,128.9,0.1,369.2,125,0.48,0.28,standard deviation,standard deviation
+temperate continental,north america,oaks and other hardwoods,4.0,2.1,7.6,6.7,3.5,12.7,4.0,2.1,7.6,23.72,12.5,45.1,125,0.48,0.28,default and standard deviation,default and standard deviation
+temperate continental,north america,picea sp.,4.0,2.1,7.6,9.89,5.2,18.8,4.0,2.1,7.6,77.34,40.7,146.9,125,0.24,0.24,default and standard deviation,default and standard deviation
+temperate continental,north america,pinus sp.,4.0,2.1,7.6,31.45,16.6,59.8,4.0,2.1,7.6,80.94,42.6,153.8,125,0.24,0.24,default and standard deviation,default and standard deviation
+temperate continental,north america,populus sp.,4.0,2.1,7.6,88.35,46.5,167.9,4.0,2.1,7.6,55.71,29.3,105.8,125,0.48,0.28,default and standard deviation,default
+temperate continental,north america,pseudotsuga menziesii,4.0,2.1,7.6,69.635,42.62,96.65,4.0,2.1,7.6,69.635,42.62,96.65,125,0.24,0.24,default and range,
+temperate continental,oceania,larix sp.,4.0,2.1,7.6,57.49,30.3,109.2,4.0,2.1,7.6,112.88,59.4,214.5,125,0.48,0.19,default and standard deviation,default and standard deviation
+temperate continental,oceania,natural,3.3,3.25,3.35,90.9,70.69,111.12,3.25,3.35,90.9,116.0,106.82,125.19,125,0.48,0.19,,
+temperate continental,oceania,pinus koraiensis,4.0,2.1,7.6,58.23,30.6,110.6,4.0,2.1,7.6,132.13,69.5,251.0,125,0.48,0.19,default and standard deviation,default and standard deviation
+temperate continental,oceania,pinus sylvestris,4.0,2.1,7.6,18.0,9.5,34.2,4.0,2.1,7.6,58.6,30.8,111.3,125,0.48,0.19,default and standard deviation,default and standard deviation
+temperate continental,oceania,pinus tabuliformis,4.0,2.1,7.6,34.02,17.9,64.6,4.0,2.1,7.6,59.39,31.3,112.8,125,0.48,0.19,default and standard deviation,default and standard deviation
+temperate continental,oceania,poplar sp.,4.0,2.1,7.6,66.74,35.1,126.8,4.0,2.1,7.6,66.74,35.1,126.8,125,0.48,0.19,,default and standard deviation
+temperate continental,oceania,robinia pseudoacacia,4.0,2.1,7.6,29.44,15.5,55.9,4.0,2.1,7.6,54.46,28.7,103.5,125,0.48,0.19,default and standard deviation,default and standard deviation
+temperate continental,south america,natural,3.3,3.25,3.35,46.0,0.1,145.5,3.6,0.1,18.6,128.9,0.1,369.2,125,0.48,0.28,standard deviation,standard deviation
+temperate desert,north america,natural,0.5,0.1,1.7,25.6,0.1,60.7,0.6,0.1,1.5,44.0,4.3,83.7,125,0.3,0.3,standard deviation,standard deviation
+temperate desert,south america,natural,0.5,0.1,1.7,25.6,0.1,60.7,0.6,0.1,1.5,44.0,4.3,83.7,125,0.3,0.3,standard deviation,standard deviation
+temperate mountain system,asia,acacia crassicarpa,3.0,1.6,5.7,31.5,16.6,59.8,3.0,1.6,5.7,31.5,16.6,59.8,125,0.31,0.25,,default
+temperate mountain system,asia,castanopsis hystrix,3.0,1.6,5.7,16.6,8.7,31.5,3.0,1.6,5.7,16.6,8.7,31.5,125,0.31,0.25,,default
+temperate mountain system,asia,eucalyptus sp.,3.0,1.6,5.7,34.6,18.2,65.7,3.0,1.6,5.7,34.6,18.2,65.7,125,0.31,0.25,,default
+temperate mountain system,asia,mixed plantation,3.0,1.6,5.7,19.2,10.1,36.5,3.0,1.6,5.7,19.2,10.1,36.5,125,0.31,0.25,,default
+temperate mountain system,asia,natural,3.1,0.1,6.7,170.4,141.48,199.33,0.1,6.7,170.4,170.4,141.48,199.33,125,0.23,0.23,95% confidence interval and default,standard deviation
+temperate mountain system,europe,natural,3.1,0.1,6.7,27.8,14.63,52.82,0.1,6.7,27.8,214.7,113.0,407.93,125,0.23,0.23,default,standard deviation
+temperate mountain system,north america,natural,3.1,0.1,6.7,57.9,0.1,136.5,4.4,0.1,105.1,185.9,32.1,339.7,125,0.23,0.23,standard deviation,standard deviation
+temperate mountain system,oceania,acacia crassicarpa,3.0,1.6,5.7,31.5,16.6,59.8,3.0,1.6,5.7,31.5,16.6,59.8,125,0.31,0.25,,default
+temperate mountain system,oceania,castanopsis hystrix,3.0,1.6,5.7,16.6,8.7,31.5,3.0,1.6,5.7,16.6,8.7,31.5,125,0.31,0.25,,default
+temperate mountain system,oceania,eucalyptus sp.,3.0,1.6,5.7,34.6,18.2,65.7,3.0,1.6,5.7,34.6,18.2,65.7,125,0.31,0.25,,default
+temperate mountain system,oceania,mixed plantation,3.0,1.6,5.7,19.2,10.1,36.5,3.0,1.6,5.7,19.2,10.1,36.5,125,0.31,0.25,,default
+temperate mountain system,oceania,natural,3.1,0.1,6.7,170.4,141.48,199.33,0.1,6.7,170.4,170.4,141.48,199.33,125,0.23,0.23,,
+temperate mountain system,south america,natural,3.1,0.1,6.7,57.9,0.1,136.5,4.4,0.1,105.1,185.9,32.1,339.7,125,0.23,0.23,standard deviation,standard deviation
+temperate oceanic,asia,broadleaf,2.3,1.2,4.4,30.0,15.8,57.0,2.3,1.2,4.4,200.0,105.3,380.0,125,0.31,0.25,default,default
+temperate oceanic,asia,coniferous,2.3,1.2,4.4,40.0,21.1,76.0,2.3,1.2,4.4,200.0,150.0,250.0,125,0.22,0.23,default and range,default
+temperate oceanic,europe,broadleaf,2.3,1.2,4.4,30.0,15.8,57.0,2.3,1.2,4.4,200.0,105.3,380.0,125,0.19,0.19,default,default
+temperate oceanic,europe,coniferous,2.3,1.2,4.4,40.0,21.1,76.0,2.3,1.2,4.4,200.0,150.0,250.0,125,0.34,0.34,default and range,default
+temperate oceanic,europe,natural,2.3,1.21,4.37,22.3,11.74,42.37,2.3,1.21,4.37,153.9,81.0,292.41,125,0.19,0.19,default,standard deviation
+temperate oceanic,north america,natural,6.3,0.1,13.7,213.9,0.1,441.0,9.1,0.1,29.3,354.1,0.1,809.8,125,0.47,0.19,standard deviation,standard deviation
+temperate oceanic,oceania,broadleaf,2.3,1.2,4.4,30.0,15.8,57.0,2.3,1.2,4.4,200.0,105.3,380.0,125,0.31,0.25,default,default
+temperate oceanic,oceania,broadleaf,2.3,1.2,4.4,30.0,15.8,57.0,2.3,1.2,4.4,200.0,105.3,380.0,125,0.31,0.25,default,default
+temperate oceanic,oceania,coniferous,2.3,1.2,4.4,40.0,21.1,76.0,2.3,1.2,4.4,200.0,150.0,250.0,125,0.22,0.23,default and range,default
+temperate oceanic,oceania,coniferous,2.3,1.2,4.4,40.0,21.1,76.0,2.3,1.2,4.4,200.0,150.0,250.0,125,0.22,0.23,default and range,default
+temperate oceanic,oceania,natural,3.12,1.64,5.93,57.5,50.36,64.64,2.12,1.71,2.53,120.5,109.35,131.65,125,0.21,0.31,95% confidence interval,standard error and 95% confidence interval
+temperate oceanic,south america,coniferous,4.0,2.1,7.6,105.0,90.0,120.0,4.0,2.1,7.6,105.0,90.0,120.0,125,0.2,0.2,standard deviation and range,
+temperate oceanic,south america,natural,6.3,0.1,13.7,213.9,0.1,441.0,9.1,0.1,29.3,354.1,0.1,809.8,125,0.47,0.19,standard deviation,standard deviation
+temperate steppe,north america,natural,2.3,0.1,5.5,42.9,0.1,119.4,3.5,0.1,16.8,118.5,0.1,578.4,125,0.48,0.28,standard deviation,standard deviation
+temperate steppe,north america,pinus sp.,11.0,5.8,20.9,48.57,25.6,92.3,4.0,2.1,7.6,84.88,44.7,161.3,125,0.24,0.24,standard deviation,standard deviation
+temperate steppe,north america,populus sp.,11.0,5.8,20.9,55.925,51.8,60.05,11.0,5.8,20.9,55.925,51.8,60.05,125,0.48,0.28,standard deviation and range,
+temperate steppe,north america,quercus and other hardwoods,4.0,2.1,7.6,41.06,21.6,78.0,4.0,2.1,7.6,41.06,21.6,78.0,125,0.48,0.28,standard deviation,
+temperate steppe,south america,natural,2.3,0.1,5.5,42.9,0.1,119.4,3.5,0.1,16.8,118.5,0.1,578.4,125,0.48,0.28,standard deviation,standard deviation
+tropical dry forest,africa,broadleaf,10.0,4.0,20.0,30.0,15.8,57.0,10.0,4.0,20.0,70.0,36.8,133.0,125,0.33,0.38,range and default,range and default
+tropical dry forest,africa,eucalyptus sp.,13.0,6.8,24.7,21.67,11.4,41.2,13.0,6.8,24.7,21.67,11.4,41.2,125,0.33,0.38,,default
+tropical dry forest,africa,natural,3.9,2.05,7.41,69.6,22.1,117.1,1.6,0.84,3.04,69.6,22.1,117.1,125,0.33,0.38,standard deviation,default
+tropical dry forest,africa,pinus sp.,6.0,5.0,8.0,47.8,20.0,75.6,9.0,7.0,10.0,126.95,60.0,193.9,125,0.33,0.38,range,range
+tropical dry forest,asia,eucalyptus sp.,15.0,5.0,25.0,21.67,11.4,41.2,15.0,5.0,25.0,21.67,11.4,41.2,125,0.44,0.38,,range and default
+tropical dry forest,asia,natural,3.9,2.05,7.41,184.6,40.1,329.1,1.6,0.84,3.04,184.6,40.1,329.1,125,0.44,0.38,standard deviation,default
+tropical dry forest,asia,other,7.0,2.0,13.0,90.0,47.4,171.0,7.0,2.0,13.0,60.0,31.6,114.0,125,0.44,0.38,range and default,range and default
+tropical dry forest,north america,eucalyptus sp.,20.0,6.0,30.0,90.0,47.4,171.0,20.0,6.0,30.0,90.0,47.4,171.0,125,0.33,0.38,range and default,range and default
+tropical dry forest,north america,natural,3.9,1.5,6.3,32.2,8.0,56.4,1.6,0.5,2.7,118.9,37.6,200.2,125,0.33,0.38,standard deviation,standard deviation
+tropical dry forest,north america,other broadleaf,10.0,3.0,12.0,60.0,31.6,114.0,10.0,3.0,12.0,60.0,31.6,114.0,125,0.33,0.38,range and default,range and default
+tropical dry forest,north america,pinus sp.,7.0,3.7,13.3,110.0,57.9,209.0,7.0,3.7,13.3,110.0,57.9,209.0,125,0.33,0.38,default,default
+tropical dry forest,north america,tectona grandis,8.0,4.0,12.0,90.0,47.4,171.0,8.0,4.0,12.0,90.0,47.4,171.0,125,0.33,0.38,range and default,range and default
+tropical dry forest,oceania,eucalyptus sp.,15.0,5.0,25.0,21.67,11.4,41.2,15.0,5.0,25.0,21.67,11.4,41.2,125,0.44,0.38,,range and default
+tropical dry forest,oceania,natural,3.9,2.05,7.41,184.6,40.1,329.1,1.6,0.84,3.04,184.6,40.1,329.1,125,0.44,0.38,,
+tropical dry forest,oceania,other,7.0,2.0,13.0,90.0,47.4,171.0,7.0,2.0,13.0,60.0,31.6,114.0,125,0.44,0.38,range and default,range and default
+tropical dry forest,south america,eucalyptus sp.,20.0,6.0,30.0,90.0,47.4,171.0,20.0,6.0,30.0,90.0,47.4,171.0,125,0.33,0.38,range and default,range and default
+tropical dry forest,south america,natural,3.9,1.5,6.3,32.2,8.0,56.4,1.6,0.5,2.7,118.9,37.6,200.2,125,0.33,0.38,standard deviation,standard deviation
+tropical dry forest,south america,other broadleaf,10.0,3.0,12.0,60.0,31.6,114.0,10.0,3.0,12.0,60.0,31.6,114.0,125,0.33,0.38,range and default,range and default
+tropical dry forest,south america,pinus sp.,7.0,3.7,13.3,110.0,57.9,209.0,7.0,3.7,13.3,110.0,57.9,209.0,125,0.33,0.38,default,default
+tropical dry forest,south america,tectona grandis,8.0,4.0,12.0,90.0,47.4,171.0,8.0,4.0,12.0,90.0,47.4,171.0,125,0.33,0.38,range and default,range and default
+tropical moist forest,africa,broadleaf,9.0,3.0,15.0,80.0,42.1,152.0,9.0,3.0,15.0,150.0,78.9,285.0,125,0.23,0.23,range and default,range and default
+tropical moist forest,africa,eucalyptus sp.,20.0,10.5,38.0,41.78,22.0,79.4,25.0,13.2,47.5,260.0,136.8,494.0,125,0.23,0.23,default,default
+tropical moist forest,africa,natural,2.9,1.9,3.9,72.8,36.4,109.2,0.9,0.2,1.6,72.8,36.4,109.2,125,0.23,0.23,standard deviation,standard deviation
+tropical moist forest,africa,pinus sp.,9.0,3.0,15.0,103.0,40.0,166.0,9.0,3.0,15.0,156.65,120.0,193.3,125,0.23,0.23,range,range
+tropical moist forest,africa,tectona grandis,9.0,3.0,15.0,195.5,102.9,371.4,9.0,3.0,15.0,428.9,225.7,814.9,125,0.23,0.23,range and default,range and default
+tropical moist forest,asia,acacia auriculiformis,8.0,4.2,15.2,177.0,93.2,336.3,8.0,4.2,15.2,177.0,93.2,336.3,125,0.32,0.25,default and standard deviation,
+tropical moist forest,asia,acaica mangium,8.0,4.2,15.2,211.0,111.1,400.9,8.0,4.2,15.2,211.0,111.1,400.9,125,0.32,0.25,default and standard deviation,
+tropical moist forest,asia,broadleaf,8.0,4.2,15.2,120.545,93.33,147.76,8.0,4.2,15.2,165.765,107.05,224.48,125,0.32,0.25,default and standard deviation,default and standard deviation
+tropical moist forest,asia,cassia montana,8.0,4.2,15.2,5.71,3.0,10.8,8.0,4.2,15.2,5.71,3.0,10.8,125,0.32,0.25,,default
+tropical moist forest,asia,cedeus libani,8.0,4.2,15.2,15.1,7.9,28.7,8.0,4.2,15.2,15.1,7.9,28.7,125,0.32,0.25,,default
+tropical moist forest,asia,eucalyptus sp.,8.0,4.2,15.2,41.78,22.0,79.4,8.0,4.2,15.2,260.0,136.8,494.0,125,0.32,0.25,default and standard deviation,default
+tropical moist forest,asia,natural,2.4,2.1,2.7,67.7,0.1,161.1,0.9,0.47,1.71,67.7,0.1,161.1,125,0.32,0.25,standard deviation,standard deviation
+tropical moist forest,asia,oil palm,8.0,4.2,15.2,163.0,124.0,202.0,8.0,4.2,15.2,163.0,124.0,202.0,125,0.32,0.25,,default and range
+tropical moist forest,asia,swietenia macrophylla,8.0,4.2,15.2,193.0,101.6,366.7,8.0,4.2,15.2,193.0,101.6,366.7,125,0.32,0.25,default and standard deviation,
+tropical moist forest,asia,tectona grandis,8.0,4.2,15.2,121.88,64.1,231.6,8.0,4.2,15.2,93.72,49.3,178.1,125,0.32,0.25,default and standard deviation,default
+tropical moist forest,north america,eucalyptus sp.,16.0,8.4,30.4,90.0,47.4,171.0,16.0,8.4,30.4,90.0,47.4,171.0,125,0.28,0.28,default,default
+tropical moist forest,north america,natural,5.2,2.9,7.5,55.7,27.0,84.4,2.7,1.0,4.4,131.0,76.8,185.2,125,0.28,0.28,standard deviation,standard deviation
+tropical moist forest,north america,other broadleaf,13.0,6.0,20.0,100.0,52.6,190.0,13.0,6.0,20.0,100.0,52.6,190.0,125,0.28,0.28,range and default,range and default
+tropical moist forest,north america,pinus sp.,8.0,4.2,15.2,270.0,142.1,513.0,8.0,4.2,15.2,270.0,142.1,513.0,125,0.28,0.28,default,
+tropical moist forest,north america,tectona grandis,8.0,4.0,12.0,84.0,44.2,159.6,8.0,4.0,12.0,284.0,149.5,539.6,125,0.28,0.28,range and default,range and default
+tropical moist forest,oceania,acacia auriculiformis,8.0,4.2,15.2,177.0,93.2,336.3,8.0,4.2,15.2,177.0,93.2,336.3,125,0.32,0.25,default and standard deviation,
+tropical moist forest,oceania,acaica mangium,8.0,4.2,15.2,211.0,111.1,400.9,8.0,4.2,15.2,211.0,111.1,400.9,125,0.32,0.25,default and standard deviation,
+tropical moist forest,oceania,broadleaf,8.0,4.2,15.2,120.545,93.33,147.76,8.0,4.2,15.2,165.765,107.05,224.48,125,0.32,0.25,default and standard deviation,default and standard deviation
+tropical moist forest,oceania,cassia montana,8.0,4.2,15.2,5.71,3.0,10.8,8.0,4.2,15.2,5.71,3.0,10.8,125,0.32,0.25,,default
+tropical moist forest,oceania,cedeus libani,8.0,4.2,15.2,15.1,7.9,28.7,8.0,4.2,15.2,15.1,7.9,28.7,125,0.32,0.25,,default
+tropical moist forest,oceania,eucalyptus sp.,8.0,4.2,15.2,41.78,22.0,79.4,8.0,4.2,15.2,260.0,136.8,494.0,125,0.32,0.25,default and standard deviation,default
+tropical moist forest,oceania,natural,2.4,2.1,2.7,67.7,0.1,161.1,0.9,0.47,1.71,67.7,0.1,161.1,125,0.32,0.25,,
+tropical moist forest,oceania,oil palm,8.0,4.2,15.2,163.0,124.0,202.0,8.0,4.2,15.2,163.0,124.0,202.0,125,0.32,0.25,,default and range
+tropical moist forest,oceania,swietenia macrophylla,8.0,4.2,15.2,193.0,101.6,366.7,8.0,4.2,15.2,193.0,101.6,366.7,125,0.32,0.25,default and standard deviation,
+tropical moist forest,oceania,tectona grandis,8.0,4.2,15.2,121.88,64.1,231.6,8.0,4.2,15.2,93.72,49.3,178.1,125,0.32,0.25,default and standard deviation,default
+tropical moist forest,south america,eucalyptus sp.,16.0,8.4,30.4,90.0,47.4,171.0,16.0,8.4,30.4,90.0,47.4,171.0,125,0.28,0.28,default,default
+tropical moist forest,south america,natural,5.2,2.9,7.5,55.7,27.0,84.4,2.7,1.0,4.4,131.0,76.8,185.2,125,0.28,0.28,standard deviation,standard deviation
+tropical moist forest,south america,other broadleaf,13.0,6.0,20.0,100.0,52.6,190.0,13.0,6.0,20.0,100.0,52.6,190.0,125,0.28,0.28,range and default,range and default
+tropical moist forest,south america,pinus sp.,8.0,4.2,15.2,270.0,142.1,513.0,8.0,4.2,15.2,270.0,142.1,513.0,125,0.28,0.28,default,
+tropical moist forest,south america,tectona grandis,8.0,4.0,12.0,84.0,44.2,159.6,8.0,4.0,12.0,284.0,149.5,539.6,125,0.28,0.28,range and default,range and default
+tropical mountain system,africa,broadleaf,10.0,5.3,19.0,70.0,40.0,100.0,10.0,5.3,19.0,105.0,60.0,150.0,125,2.16,2.16,default and range,default and range
+tropical mountain system,africa,natural,5.5,0.1,12.3,190.0,58.8,321.2,1.8,0.95,3.42,190.0,58.8,321.2,125,0.35,0.28,standard deviation,standard deviation
+tropical mountain system,africa,pinus sp.,10.0,5.3,19.0,35.0,30.0,40.0,10.0,5.3,19.0,65.0,30.0,100.0,125,2.16,2.16,default and range,default and range
+tropical mountain system,asia,broadleaf,4.0,2.1,7.6,95.0,40.0,150.0,4.0,2.1,7.6,95.0,40.0,150.0,125,0.32,0.35,default and range,
+tropical mountain system,asia,eucalyptus sp.,3.0,1.6,5.7,75.0,30.0,120.0,3.0,1.6,5.7,75.0,30.0,120.0,125,0.32,0.35,,default
+tropical mountain system,asia,natural,2.9,2.8,3.0,66.4,5.4,127.4,1.1,0.7,1.5,66.4,5.4,127.4,125,0.32,0.35,standard deviation,standard deviation
+tropical mountain system,asia,other,5.0,1.0,10.0,52.5,25.0,80.0,5.0,1.0,10.0,52.5,25.0,80.0,125,0.32,0.35,range,range
+tropical mountain system,asia,other broadleaf,4.0,2.1,7.6,95.0,40.0,150.0,4.0,2.1,7.6,95.0,40.0,150.0,125,0.32,0.35,,default and range
+tropical mountain system,north america,eucalyptus sp.,10.0,8.0,18.0,75.0,30.0,120.0,10.0,8.0,18.0,75.0,30.0,120.0,125,2.16,2.16,range,range
+tropical mountain system,north america,natural,4.4,2.8,6.0,75.9,24.8,127.0,1.8,1.0,2.6,184.4,73.4,295.4,125,0.35,0.28,standard deviation,standard deviation
+tropical mountain system,north america,other broadleaf,10.0,5.3,19.0,55.0,30.0,80.0,10.0,5.3,19.0,55.0,30.0,80.0,125,2.16,2.16,default and range,default and range
+tropical mountain system,north america,pinus sp.,10.0,5.3,19.0,115.0,60.0,170.0,10.0,5.3,19.0,115.0,60.0,170.0,125,2.16,2.16,default and range,default and range
+tropical mountain system,north america,tectona grandis,10.0,5.3,19.0,80.0,30.0,130.0,10.0,5.3,19.0,80.0,30.0,130.0,125,2.16,2.16,default and range,default and range
+tropical mountain system,oceania,broadleaf,4.0,2.1,7.6,95.0,40.0,150.0,4.0,2.1,7.6,95.0,40.0,150.0,125,0.32,0.35,default and range,
+tropical mountain system,oceania,eucalyptus sp.,3.0,1.6,5.7,75.0,30.0,120.0,3.0,1.6,5.7,75.0,30.0,120.0,125,0.32,0.35,,default
+tropical mountain system,oceania,natural,2.9,2.8,3.0,66.4,5.4,127.4,1.1,0.7,1.5,66.4,5.4,127.4,125,0.32,0.35,,
+tropical mountain system,oceania,other,5.0,1.0,10.0,52.5,25.0,80.0,5.0,1.0,10.0,52.5,25.0,80.0,125,0.32,0.35,range,range
+tropical mountain system,oceania,other broadleaf,4.0,2.1,7.6,95.0,40.0,150.0,4.0,2.1,7.6,95.0,40.0,150.0,125,0.32,0.35,,default and range
+tropical mountain system,south america,eucalyptus sp.,10.0,8.0,18.0,75.0,30.0,120.0,10.0,8.0,18.0,75.0,30.0,120.0,125,2.16,2.16,range,range
+tropical mountain system,south america,natural,4.4,2.8,6.0,75.9,24.8,127.0,1.8,1.0,2.6,184.4,73.4,295.4,125,0.35,0.28,standard deviation,standard deviation
+tropical mountain system,south america,other broadleaf,10.0,5.3,19.0,55.0,30.0,80.0,10.0,5.3,19.0,55.0,30.0,80.0,125,2.16,2.16,default and range,default and range
+tropical mountain system,south america,pinus sp.,10.0,5.3,19.0,115.0,60.0,170.0,10.0,5.3,19.0,115.0,60.0,170.0,125,2.16,2.16,default and range,default and range
+tropical mountain system,south america,tectona grandis,10.0,5.3,19.0,80.0,30.0,130.0,10.0,5.3,19.0,80.0,30.0,130.0,125,2.16,2.16,default and range,default and range
+tropical rainforest,africa,broadleaf,6.0,5.0,8.0,100.0,52.6,190.0,6.0,5.0,8.0,300.0,157.9,570.0,125,0.83,0.53,range and default,range and default
+tropical rainforest,africa,natural,7.6,1.7,13.5,52.8,17.2,88.4,3.5,0.2,6.8,212.9,69.8,356.0,125,0.83,0.53,standard deviation,standard deviation
+tropical rainforest,africa,pinus sp.,20.0,10.5,38.0,60.0,31.6,114.0,20.0,10.5,38.0,200.0,105.3,380.0,125,0.83,0.53,default,default
+tropical rainforest,asia,acacia auriculiformis,5.0,2.0,8.0,109.0,99.0,119.0,5.0,2.0,8.0,109.0,99.0,119.0,125,0.33,0.33,,range
+tropical rainforest,asia,acacia mangium,5.0,2.0,8.0,93.6,49.3,177.8,5.0,2.0,8.0,93.6,49.3,177.8,125,0.33,0.33,,range and standard deviation
+tropical rainforest,asia,broadleaf,5.0,2.0,8.0,220.0,115.8,418.0,5.0,2.0,8.0,220.0,115.8,418.0,125,0.33,0.33,range and default,range and default
+tropical rainforest,asia,eucalyptus sp.,5.0,4.0,8.0,103.5,46.0,161.0,5.0,4.0,8.0,103.5,46.0,161.0,125,0.33,0.33,,range and standard deviation
+tropical rainforest,asia,gmelina arborea,5.0,2.0,8.0,97.6,51.4,185.4,5.0,2.0,8.0,97.6,51.4,185.4,125,0.33,0.33,,range and standard deviation
+tropical rainforest,asia,hevea brasiliensis,5.0,2.0,8.0,122.5,113.0,132.0,5.0,2.0,8.0,122.5,113.0,132.0,125,0.33,0.33,,range
+tropical rainforest,asia,mangifera indica,5.0,2.0,8.0,13.5,7.1,25.6,5.0,2.0,8.0,13.5,7.1,25.6,125,0.33,0.33,,range and standard deviation
+tropical rainforest,asia,mixed,5.0,2.0,8.0,69.0,36.3,131.1,5.0,2.0,8.0,69.0,36.3,131.1,125,0.33,0.33,range and default,
+tropical rainforest,asia,natural,3.4,0.1,7.3,45.6,25.0,66.2,2.7,0.1,5.8,131.6,110.9,152.3,125,0.21,0.21,standard deviation,standard deviation
+tropical rainforest,asia,oil palm,5.0,2.0,8.0,26.9,18.4,35.4,5.0,2.0,8.0,48.5,25.5,92.1,125,0.33,0.33,range and standard deviation,range
+tropical rainforest,north america,eucalyptus sp.,20.0,6.0,40.0,200.0,105.3,380.0,20.0,6.0,40.0,200.0,105.3,380.0,125,0.17,0.17,range and default,range and default
+tropical rainforest,north america,natural,5.9,3.4,8.4,75.7,41.2,110.2,2.3,1.2,3.4,206.4,126.0,286.8,125,0.22,0.22,standard deviation,standard deviation
+tropical rainforest,north america,other broadleaf,20.0,5.0,35.0,150.0,78.9,285.0,20.0,5.0,35.0,150.0,78.9,285.0,125,0.17,0.17,range and default,range and default
+tropical rainforest,north america,pinus sp.,20.0,10.5,38.0,300.0,157.9,570.0,20.0,10.5,38.0,300.0,157.9,570.0,125,0.17,0.17,default,default
+tropical rainforest,north america,tectona grandis,15.0,7.9,28.5,240.0,126.3,456.0,15.0,7.9,28.5,240.0,126.3,456.0,125,0.17,0.17,default,default
+tropical rainforest,oceania,acacia auriculiformis,5.0,2.0,8.0,109.0,99.0,119.0,5.0,2.0,8.0,109.0,99.0,119.0,125,0.33,0.33,,range
+tropical rainforest,oceania,acacia mangium,5.0,2.0,8.0,93.6,49.3,177.8,5.0,2.0,8.0,93.6,49.3,177.8,125,0.33,0.33,,range and standard deviation
+tropical rainforest,oceania,broadleaf,5.0,2.0,8.0,220.0,115.8,418.0,5.0,2.0,8.0,220.0,115.8,418.0,125,0.33,0.33,range and default,range and default
+tropical rainforest,oceania,eucalyptus sp.,5.0,4.0,8.0,103.5,46.0,161.0,5.0,4.0,8.0,103.5,46.0,161.0,125,0.33,0.33,,range and standard deviation
+tropical rainforest,oceania,gmelina arborea,5.0,2.0,8.0,97.6,51.4,185.4,5.0,2.0,8.0,97.6,51.4,185.4,125,0.33,0.33,,range and standard deviation
+tropical rainforest,oceania,hevea brasiliensis,5.0,2.0,8.0,122.5,113.0,132.0,5.0,2.0,8.0,122.5,113.0,132.0,125,0.33,0.33,,range
+tropical rainforest,oceania,mangifera indica,5.0,2.0,8.0,13.5,7.1,25.6,5.0,2.0,8.0,13.5,7.1,25.6,125,0.33,0.33,,range and standard deviation
+tropical rainforest,oceania,mixed,5.0,2.0,8.0,69.0,36.3,131.1,5.0,2.0,8.0,69.0,36.3,131.1,125,0.33,0.33,range and default,
+tropical rainforest,oceania,natural,3.4,0.1,7.3,45.6,25.0,66.2,2.7,0.1,5.8,131.6,110.9,152.3,125,0.21,0.21,,
+tropical rainforest,oceania,oil palm,5.0,2.0,8.0,26.9,18.4,35.4,5.0,2.0,8.0,48.5,25.5,92.1,125,0.33,0.33,range and standard deviation,range
+tropical rainforest,south america,eucalyptus sp.,20.0,6.0,40.0,200.0,105.3,380.0,20.0,6.0,40.0,200.0,105.3,380.0,125,0.17,0.17,range and default,range and default
+tropical rainforest,south america,natural,5.9,3.4,8.4,75.7,41.2,110.2,2.3,1.2,3.4,206.4,126.0,286.8,125,0.22,0.22,standard deviation,standard deviation
+tropical rainforest,south america,other broadleaf,20.0,5.0,35.0,150.0,78.9,285.0,20.0,5.0,35.0,150.0,78.9,285.0,125,0.17,0.17,range and default,range and default
+tropical rainforest,south america,pinus sp.,20.0,10.5,38.0,300.0,157.9,570.0,20.0,10.5,38.0,300.0,157.9,570.0,125,0.17,0.17,default,default
+tropical rainforest,south america,tectona grandis,15.0,7.9,28.5,240.0,126.3,456.0,15.0,7.9,28.5,240.0,126.3,456.0,125,0.17,0.17,default,default
+tropical shrubland,africa,eucalyptus sp.,5.0,3.0,7.0,100.0,46.0,161.0,8.0,5.0,14.0,100.0,46.0,161.0,125,0.33,0.38,range and default,range and default
+tropical shrubland,africa,natural,0.4,0.21,0.76,48.4,2.6,94.2,0.9,0.47,1.71,48.4,2.6,94.2,125,0.33,0.38,standard deviation,default
+tropical shrubland,africa,other,15.0,7.9,28.5,20.0,10.5,38.0,10.0,5.3,19.0,20.0,10.5,38.0,125,0.33,0.38,default,default
+tropical shrubland,africa,pinus sp.,3.0,0.5,6.0,15.0,7.9,28.5,2.5,1.3,4.8,20.0,10.5,38.0,125,0.33,0.38,default,range and default
+tropical shrubland,asia,acacia sp.,6.0,1.0,12.0,29.885,11.78,47.99,6.0,1.0,12.0,29.885,11.78,47.99,125,0.44,0.38,,range
+tropical shrubland,asia,azadirachta indica,6.0,1.0,12.0,53.32,28.1,101.3,6.0,1.0,12.0,53.32,28.1,101.3,125,0.44,0.38,,range and default
+tropical shrubland,asia,broadleaf,6.0,1.0,12.0,40.0,21.1,76.0,6.0,1.0,12.0,263.3,138.6,500.3,125,0.44,0.38,range and default,range and default
+tropical shrubland,asia,casuarina equisetifolia,6.0,1.0,12.0,9.12,4.8,17.3,6.0,1.0,12.0,9.12,4.8,17.3,125,0.44,0.38,,range and default
+tropical shrubland,asia,natural,5.0,2.63,9.5,38.3,5.3,71.3,1.3,0.68,2.47,38.3,5.3,71.3,125,0.44,0.38,standard deviation,default
+tropical shrubland,asia,other,6.0,1.0,12.0,30.0,15.8,57.0,6.0,1.0,12.0,30.0,15.8,57.0,125,0.44,0.38,,range and default
+tropical shrubland,asia,pongamia pinnata,6.0,1.0,12.0,9.03,4.8,17.2,6.0,1.0,12.0,9.03,4.8,17.2,125,0.44,0.38,,range and default
+tropical shrubland,asia,tectona grandis,6.0,1.0,12.0,31.66,16.7,60.2,6.0,1.0,12.0,31.66,16.7,60.2,125,0.44,0.38,,range and default
+tropical shrubland,north america,eucalyptus sp.,20.0,10.5,38.0,60.0,31.6,114.0,20.0,10.5,38.0,60.0,31.6,114.0,125,0.33,0.38,default,default
+tropical shrubland,north america,natural,4.0,2.11,7.6,71.5,25.1,117.9,1.0,0.53,1.9,71.5,25.1,117.9,125,0.33,0.38,standard deviation,default
+tropical shrubland,north america,pinus sp.,5.0,2.6,9.5,60.0,31.6,114.0,5.0,2.6,9.5,60.0,31.6,114.0,125,0.33,0.38,default,
+tropical shrubland,north america,tectona grandis,5.0,2.6,9.5,60.0,31.6,114.0,5.0,2.6,9.5,60.0,31.6,114.0,125,0.33,0.38,,
+tropical shrubland,oceania,acacia sp.,6.0,1.0,12.0,29.885,11.78,47.99,6.0,1.0,12.0,29.885,11.78,47.99,125,0.44,0.38,,range
+tropical shrubland,oceania,azadirachta indica,6.0,1.0,12.0,53.32,28.1,101.3,6.0,1.0,12.0,53.32,28.1,101.3,125,0.44,0.38,,range and default
+tropical shrubland,oceania,broadleaf,6.0,1.0,12.0,40.0,21.1,76.0,6.0,1.0,12.0,263.3,138.6,500.3,125,0.44,0.38,range and default,range and default
+tropical shrubland,oceania,casuarina equisetifolia,6.0,1.0,12.0,9.12,4.8,17.3,6.0,1.0,12.0,9.12,4.8,17.3,125,0.44,0.38,,range and default
+tropical shrubland,oceania,natural,2.0,1.05,3.8,38.3,5.3,71.3,1.0,0.53,1.9,38.3,5.3,71.3,125,0.44,0.38,standard deviation,default
+tropical shrubland,oceania,other,6.0,1.0,12.0,30.0,15.8,57.0,6.0,1.0,12.0,30.0,15.8,57.0,125,0.44,0.38,,range and default
+tropical shrubland,oceania,pongamia pinnata,6.0,1.0,12.0,9.03,4.8,17.2,6.0,1.0,12.0,9.03,4.8,17.2,125,0.44,0.38,,range and default
+tropical shrubland,oceania,tectona grandis,6.0,1.0,12.0,31.66,16.7,60.2,6.0,1.0,12.0,31.66,16.7,60.2,125,0.44,0.38,,range and default
+tropical shrubland,south america,eucalyptus sp.,20.0,10.5,38.0,60.0,31.6,114.0,20.0,10.5,38.0,60.0,31.6,114.0,125,0.33,0.38,default,default
+tropical shrubland,south america,natural,4.0,2.11,7.6,71.5,25.1,117.9,1.0,0.53,1.9,71.5,25.1,117.9,125,0.33,0.38,standard deviation,default
+tropical shrubland,south america,pinus sp.,5.0,2.6,9.5,60.0,31.6,114.0,5.0,2.6,9.5,60.0,31.6,114.0,125,0.33,0.38,default,
+tropical shrubland,south america,tectona grandis,5.0,2.6,9.5,60.0,31.6,114.0,5.0,2.6,9.5,60.0,31.6,114.0,125,0.33,0.38,,
