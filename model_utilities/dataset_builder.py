@@ -265,24 +265,28 @@ class EEDatasetBuilder():
 
             test_polygons = test_polygons.map(buffer_by(buffer))
 
-        #Set a property with consecutive numbers for each polygon, so they can be painted on a raster
+        # Set a property with consecutive numbers for each polygon, so they can be painted on a raster
         n_polys = test_polygons.size().getInfo()
         poly_list = list(range(n_polys))
         test_polygons = test_polygons.set('test_set', poly_list)
 
-        #Paint the polygons on to an image and add it as a band
-        #This creates a raster with numbers on pixels in the (buffered) test sets and masked pixels elsewhere
-        #TODO: understand why the numbering doesn't exactly follow 'test_set', (e.g. it starts at 1 and not 0),
+        globe = ee.FeatureCollection('projects/ee-margauxmasson21-shapefiles/assets/world_rectangle')
+        globe_img = ee.Image().int().paint(globe, 0)
+
+        # Paint the polygons on to an image and add it as a band
+        # This creates a raster with numbers on pixels in the (buffered) test sets and masked pixels elsewhere
+        # TODO: understand why the numbering doesn't exactly follow 'test_set', (e.g. it starts at 1 and not 0),
         # but having numbered pixels
         # in the test areas only seems to work if that argument is supplied here
-        test_mask = ee.Image().paint(test_polygons, 'test_set').rename(test_set_name)
+        test_mask = ee.Image().int().paint(test_polygons, 1)
+        test_mask_combined = ee.ImageCollection([globe_img, test_mask]).mosaic().rename(test_set_name)
 
         # If an image isn't already created, make an empty image and add a band.
         # Otherwise, add to the existing image
         if self.image is None:
-            self.image = test_mask
+            self.image = test_mask_combined
         else:
-            self.image = self.image.addBands(srcImg=test_mask, names=[test_set_name])
+            self.image = self.image.addBands(srcImg=test_mask_combined, names=[test_set_name])
 
     def load_ee_asset_shapefile(self, shp_asset_path):
         """
