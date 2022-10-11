@@ -334,7 +334,7 @@ class EEDatasetBuilder():
         task_config = {
             'bucket': f'{name_gcp_bucket}',  # output GCP bucket
             'description': f"training_set_MF_AGB_{numPixels}pixels_{scale}scale_{index}",
-            'fileNamePrefix': folder_in_gcp_bucket + '/' + f"training_set_MF_AGB_{numPixels}pixels_{scale}scale_{index}"
+            'fileNamePrefix': folder_in_gcp_bucket + '/' + f"samples_{numPixels}pixels_{scale}scale_{index}"
         }
         # Export table to GCP bucket
         task = ee.batch.Export.table.toCloudStorage(samples,
