@@ -1,4 +1,5 @@
 import pandas as pd
+import numpy as np
 
 def _expandIPCC(years, r0, r20, k20, kmax, root_shoot_break, rs_young, rs_old):
     # Aboveground Biomass (proposed fix above)

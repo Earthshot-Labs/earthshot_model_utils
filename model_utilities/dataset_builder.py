@@ -3,6 +3,7 @@
 import ee
 from tqdm import tqdm
 import pandas as pd
+import numpy as np
 
 
 class EEDatasetBuilder():
@@ -613,7 +614,7 @@ def getWalkerValues(geojson):
     ## 1. Find ecoregions that overlap with the AOI
     ecoregions = ee.FeatureCollection('RESOLVE/ECOREGIONS/2017');
 
-    # Get set of ecoregions that occur in the area of interest and limit distance to no more than 20km away
+    # Get set of ecoregions that occur in the area of interest 
     bounds = ee.Geometry(aoi.geometry(maxError=100))
     searchAreas = ecoregions.filterBounds(bounds).map(
         lambda f: f.intersection(bounds))

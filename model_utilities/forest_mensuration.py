@@ -1,5 +1,14 @@
 import pandas as pd
 import numpy as np
+import geopandas as gpd
+
+import ee
+
+try:
+    ee.Initialize()
+except:
+    ee.Authenticate()
+    ee.Initialize()
 
 # constants
 c_to_co2 = (44/12) #conversion factor c to co2 equivalent
