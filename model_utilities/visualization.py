@@ -60,7 +60,8 @@ def plotting_maxs(growth_curve_fit, title, nyears=100, plotdata=False):
     prediction_df.index = prediction_df['Age']
     prediction_df = prediction_df.drop(['Age'], axis=1)
     
-    color_list = ['grey','#bab86c','#6cbab8']  #6e7f80, 536878 #
+    #color_list = ['grey','#bab86c','#6cbab8']  #6e7f80, 536878 #
+    color_list = plt.cm.tab10.colors
     
     fig, ax = plt.subplots(figsize=(15,5))
     ax.set_title(title, fontsize=15)
