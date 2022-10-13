@@ -4,16 +4,14 @@ Utility functions for model development and deployment
 This folder contains an installable Python package called `model_utilities` with a number of functions for the science team to conduct deep dives to do carbon projects for specific projects.
 
 # Installation:
-Download folder to your local workspace. In Terminal activate the virtual environment where you want to install the `deepdive_automation` package. Navigate to the `deepdive_automation` folder (in terminal). Pip install the package using `pip install deepdive_automation`. This should install the package into the activated virutal environment. Then in Python (jupyter notebook or elsewhere using the same virtual environment) you will be able to access the package using `import deepdive_automation`. Functions can be used as `deepdive_automation.wood_density_lookup(...)`.
+Download folder to your local workspace. In Terminal activate the virtual environment where you want to install the `model_utilities` package. Navigate to the `model_utilities` folder (in terminal). Pip install the package using `pip install .`. This should install the package into the activated virutal environment. Then in Python (jupyter notebook or elsewhere using the same virtual environment) you will be able to access the package using `import model_utilities`. Functions can be used as `model_utilities.forest_mensuration.clean_biomass_data(...)`.
 
 You need to have the `ee` package working on python. If you are using a Jupyter notebook that means you need to have notebooks authenticated for GEE (more detailed instructions coming soon).
 
-**NOTE:** you will need to download the GEZ2010 shapefile into a data folder as this is part of the gitignore file. Specific instructions on this are coming soon. Link to download shapefile is: https://storage.googleapis.com/fao-maps-catalog-data/uuid/2fb209d0-fd34-4e5e-a3d8-a13c241eb61b/resources/gez2010.zip and you will also need to download this file from Joe's IPCC Tier 1 work: https://github.com/Earthshot-Labs/science/blob/master/IPCC_tier_1/prediction/ipcc_table_intermediate_files/ipcc_tier1_all.csv (since it's a private repo I'm having issues automatically pulling the file from the function)
-
-**NOTE:** when using the latest version the package is now called `model_utilities`. To install download and navigate to the folder `model_utilities` and `pip setup.py install`.
+**NOTE:** you will need to download the GEZ2010 shapefile and IPCC parameters csv into a data folder as this is part of the gitignore file. Specific instructions on this are coming soon. Link to download shapefile is: https://storage.googleapis.com/fao-maps-catalog-data/uuid/2fb209d0-fd34-4e5e-a3d8-a13c241eb61b/resources/gez2010.zip and you will also need to download this file from Joe's IPCC Tier 1 work: https://github.com/Earthshot-Labs/science/blob/master/IPCC_tier_1/prediction/ipcc_table_intermediate_files/ipcc_tier1_all.csv (since it's a private repo I'm having issues automatically pulling the file from the function)
 
 # Update Package:
-If you have a new version of the package ready to install, navigate to the folder as with the install and type `pip install --upgrade .`.
+If you have a new version of the package ready to install, navigate to the folder as with the install and type `pip install --upgrade .`. If you expect lots of changes install in editable mode using `pip install -e .`.
 
 # Functions: 
 (need to update this list). 
@@ -28,7 +26,7 @@ If you have a new version of the package ready to install, navigate to the folde
 `getNearbyMatureForestPercentiles`
 
 # Examples:
-There is a notebook in the science repo with examples of usage for each function: https://github.com/Earthshot-Labs/science/blob/master/Ad-hoc_project_analyses/Deepdive_automation_examples.ipynb 
+There is a notebook in the science repo with examples of usage for each function in the testing folder
 
 
 # Issues:
