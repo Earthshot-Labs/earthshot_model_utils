@@ -9,6 +9,7 @@ warnings.filterwarnings("ignore", "Your application has authenticated using end 
 
 ################## Variables Definitions ##################
 ##### 1. Dataset builder #####
+# Training target: Response variable
 biomass_raster = 'Spawn_AGB_tCO2e'
 filter_dict = {'forest_non_forest': {'date_range': ['2010-01-01', '2010-12-31']},
                'min_forest_age': {'age': 40},
@@ -19,6 +20,7 @@ filter_dict = {'forest_non_forest': {'date_range': ['2010-01-01', '2010-12-31']}
                 # 'roads': {'distance': 5000},
                 # 'fire': {'year': 2010}
                }
+# Predictors
 covariates_image_list = ['ecoregion', 'terrain', 'bioclim', 'terraclimate', 'soil']
 
 ##### 2. Actions to run #####
