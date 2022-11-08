@@ -9,7 +9,7 @@ warnings.filterwarnings("ignore", "Your application has authenticated using end 
 
 ################## Variables Definitions ##################
 ##### 1. Dataset builder #####
-biomass_raster = 'Walker_AGB_500m_tCO2'   # 'Spawn_AGB_tCO2e', 'GEDI_Biomass_1km_tCO2', 'Walker_AGB_500m_tCO2'
+biomass_raster = 'Spawn_AGB_tCO2e'   # 'Spawn_AGB_tCO2e', 'GEDI_Biomass_1km_tCO2', 'Walker_AGB_500m_tCO2'
 filter_dict = {'forest_non_forest': {'date_range': ['2010-01-01', '2010-12-31']},
                'min_forest_age': {'age': 50},
                'protected_areas': {},
@@ -30,8 +30,8 @@ run_export_image_as_ee_asset = False
 gcp_bucket = 'eartshot-science-team'
 gcp_folder_name = 'potential-mature-forest-biomass'
 scale = 300
-samples_folder_name = f'Walker_latin_am_samples_csv_scale{scale}_test_val_sets_10km_buffer'
-tiles_folder_name = f'Walker_inference_south_am_tiles_500km_scale{scale}'
+samples_folder_name = f'Spawn_latin_am_samples_csv_scale{scale}_test_val_sets_10km_buffer'
+tiles_folder_name = f'Spawn_inference_south_am_tiles_500km_scale{scale}'
 
 ##### 4. Variables for: Export samples csv to bucket #####
 # Gridded world shapefile asset in GEE
@@ -43,7 +43,7 @@ shp_asset_path_tiles = 'projects/ee-earthshot/assets/south_america_gridded_500km
 maxPixels = 1e13
 
 ##### 6. Variables for: Export image as an EE asset #####
-name_asset = 'Walker_mature_forest_biomass_layer'
+name_asset = 'Spawn_mature_forest_biomass_layer'
 
 ################## Dataset builder ##################
 ee_dataset_builder = EEDatasetBuilder()
