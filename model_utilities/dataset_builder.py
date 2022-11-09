@@ -51,17 +51,17 @@ class EEDatasetBuilder():
             # Global Aboveground and Belowground Biomass Carbon Density Map
             # Get Above Ground Biomass band and convert it to tCO2e
             biomass = ee.ImageCollection("NASA/ORNL/biomass_carbon_density/v1").first()
-            biomass = biomass.select('agb').multiply(3.66).rename(biomass_raster)
+            biomass = biomass.select('agb').multiply(44/12).rename(biomass_raster)
         elif biomass_raster == 'GEDI_Biomass_1km_tCO2':
             # GEDI L4B Gridded Aboveground Biomass Density (Version 2)
             # Get Above Ground Biomass band and convert it to tCO2e
-            biomass = ee.Image('LARSE/GEDI/GEDI04_B_002').select('MU').multiply(3.66).multiply(0.47)
+            biomass = ee.Image('LARSE/GEDI/GEDI04_B_002').select('MU').multiply(44/12).multiply(0.47)
             biomass = biomass.rename(biomass_raster)
         elif biomass_raster == 'Walker_AGB_500m_tCO2':
             # The global potential for increased storage of carbon on land
             # Get Above Ground Biomass band and convert it to tCO2e
             walker = ee.Image('users/steve_klosterman/Walker_et_al/Base_Cur_AGB_MgCha_500m')   # re-aligned map
-            biomass = walker.multiply(3.66).select([0], ['tCO2e'])
+            biomass = walker.multiply(44/12).select([0], ['tCO2e'])
             biomass = biomass.rename(biomass_raster)
         else:
             print('Please select a correct biomass raster name: Spawn_AGB_tCO2e, GEDI_Biomass_1km_tCO2, Walker_AGB_500m_tCO2')
@@ -604,7 +604,7 @@ def getNearbyMatureForestPercentiles(geojson, buffer=20):
     # Biomass - Spawn dataset: https://www.nature.com/articles/s41597-020-0444-4
     biomass = ee.ImageCollection("NASA/ORNL/biomass_carbon_density/v1").first()
     biomass = (biomass.select('agb').add(biomass.select('bgb'))
-               .multiply(3.66).select([0], ['tCO2e']))  # agb_bgb in tCO2e/ha
+               .multiply(44/12).select([0], ['tCO2e']))  # agb_bgb in tCO2e/ha
 
     # Mask away non forests and young forests, and then get the pdf
     featureDeciles = (biomass.mask(forestMask).mask(matureForest)
@@ -645,7 +645,7 @@ def getWalkerValues(geojson):
 
     # Convert C -> CO2e
     walker_potC = (walker_potC.select('b1')
-                   .multiply(3.66)
+                   .multiply(44/12)
                    .select([0], ['tCO2e']))  # agb_bgb in tCO2e/ha
 
     featureValues = walker_potC.sampleRegions(bounds).getInfo()
