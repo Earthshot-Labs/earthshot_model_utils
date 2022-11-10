@@ -187,6 +187,9 @@ class EEDatasetBuilder():
             mask = self.image.mask()
 
         for covariate in covariates:
+            # MapBiomas land use cover maps: 
+            # Select year 2010 as is it the start of our period
+            MapBiomas_v7 = ee.Image('projects/mapbiomas-workspace/public/collection7/mapbiomas_collection70_integration_v2').select('classification_2010')
             if covariate == 'ecoregion':
                 ecoregion_dataset = ee.FeatureCollection("RESOLVE/ECOREGIONS/2017")
                 # Use the BIOME_NUM band, convert from double to int to potentially use with stratified sampling
@@ -224,6 +227,72 @@ class EEDatasetBuilder():
                 # Updated to use SRTM
                 terrain_image = ee.Terrain.products(ee.Image('CGIAR/SRTM90_V4')).select(terrain_bands)
                 self.image = self.image.addBands(terrain_image.updateMask(mask))
+            if covariate == 'brazil_roads':
+                roadsBrazil = ee.FeatureCollection("users/prp2123/Rodovias_Hidrografia/rodovias")
+                # TODO not hard coded distances
+                distRoads = roadsBrazil.distance(500000).rename('brazil_roads')
+                self.image = self.image.addBands(distRoads.updateMask(mask))
+            if covariate == 'brazil_rivers':
+                riversSouthAmerica = ee.FeatureCollection("users/prpiffer/Rivers_South_America"); # TODO not found
+                # TODO not hard coded distances
+                distRivers = riversSouthAmerica.distance(10000).rename('brazil_rivers')
+                self.image = self.image.addBands(distRivers.updateMask(mask))
+            if covariate == 'brazil_protected_areas':
+                paBrazil = ee.FeatureCollection("users/prp2123/Limites_Shapefiles/unidade_conservacao")
+                # TODO not hard coded distances
+                distPA = paBrazil.distance(300000).rename('brazil_protected_areas')
+                self.image = self.image.addBands(distPA.updateMask(mask))
+            if covariate == 'population_density':
+                # Population density asset from Columbia's CIESIN
+                popDensity = ee.ImageCollection("CIESIN/GPWv411/GPW_Population_Density").filterDate('2018-01-01','2021-01-01').first().select('population_density')
+                self.image = self.image.addBands(popDensity.updateMask(mask))
+            if covariate == 'forest_age':
+                forets_age = ee.Image("projects/es-gis-resources/assets/forestage").select([0], ['forestage']).rename('forest_age')
+                self.image = self.image.addBands(forets_age.updateMask(mask))
+            if covariate == 'urbanization':
+                urbanization = ee.Image('projects/ee-mmf-mature-forest-biomass/assets/GHS_SMOD_E2020_GLOBE_R2022A_54009_1000_V1_0')
+                urbanization = urbanization.remap([10,11,12,13,21,22,23,30],[0,1,2,3,4,5,6,7],0).rename('urbanization')
+                self.image = self.image.addBands(urbanization.updateMask(mask))
+            if covariate == 'brazil_surrounding_forest':
+                # Creating land use cover variables:
+                # Forest:
+                forest = MapBiomas_v7.remap([3,4,5,49],[1,1,1,1],0)
+                # TODO not hard coded distances
+                nearbyForest = forest.reduceNeighborhood(**{
+                                      'reducer': ee.Reducer.sum(),
+                                      'kernel': ee.Kernel.square(**{'radius': 15, 
+                                                                'units': 'pixels', 
+                                                                'normalize': False})
+                                      }).rename('brazil_surrounding_forest')
+                self.image = self.image.addBands(nearbyForest.updateMask(mask))
+            if covariate == 'brazil_pasture':
+                pasture = MapBiomas_v7.remap([15,21],[1,1],0)
+                # TODO not hard coded distances
+                nearbyPasture = pasture.reduceNeighborhood(**{
+                                      'reducer': ee.Reducer.sum(),
+                                      'kernel': ee.Kernel.square(**{'radius': 15, 
+                                                                'units': 'pixels', 
+                                                                'normalize': False})
+                                      }).rename('brazil_pasture')
+                self.image = self.image.addBands(nearbyPasture.updateMask(mask))
+            if covariate == 'brazil_agriculture':
+                # TODO not hard coded distances
+                agriculture = MapBiomas_v7.remap([20,39,40,41,46,47,48],[1,1,1,1,1,1,1],0)
+                nearbyAgriculture = agriculture.reduceNeighborhood(**{
+                                      'reducer': ee.Reducer.sum(),
+                                      'kernel': ee.Kernel.square(**{'radius': 15, 
+                                                                'units': 'pixels', 
+                                                                'normalize': False})
+                                      }).rename('brazil_agriculture')
+                self.image = self.image.addBands(nearbyAgriculture.updateMask(mask))
+            if covariate == 'urban_distance':
+                urban = MapBiomas_v7.remap([24],[1],0)
+                urban = urban.gt(0).selfMask()
+                # Distance to urban centers:
+                # TODO not hard coded distances
+                distUrban = urban.distance(ee.Kernel.euclidean(100000, 'meters', normalize=False)).rename('urban_distance')
+                self.image = self.image.addBands(distUrban.updateMask(mask))
+
 
     # TODO: test if ee asset looks good after export
     def export_image_as_asset(self, name_asset, scale, maxPixels):
