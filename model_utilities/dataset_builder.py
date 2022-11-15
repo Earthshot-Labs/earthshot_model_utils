@@ -63,6 +63,8 @@ class EEDatasetBuilder():
             walker = ee.Image('users/steve_klosterman/Walker_et_al/Base_Cur_AGB_MgCha_500m')   # re-aligned map
             biomass = walker.multiply(44/12).select([0], ['tCO2e'])
             biomass = biomass.rename(biomass_raster)
+        elif biomass_raster == 'Deforestation_risk_response_variable_brazil':
+            biomass = ee.Image('users/margauxmf-earthshot/deforestation_risk_response_variable_brazil').rename(biomass_raster)
         else:
             print('Please select a correct biomass raster name: Spawn_AGB_tCO2e, GEDI_Biomass_1km_tCO2, Walker_AGB_500m_tCO2')
 
@@ -232,10 +234,10 @@ class EEDatasetBuilder():
                 # TODO not hard coded distances
                 distRoads = roadsBrazil.distance(500000).rename('brazil_roads')
                 self.image = self.image.addBands(distRoads.updateMask(mask))
-            if covariate == 'brazil_rivers':
+            if covariate == 'south_america_rivers':
                 riversSouthAmerica = ee.FeatureCollection("users/prpiffer/Rivers_South_America"); # TODO not found
                 # TODO not hard coded distances
-                distRivers = riversSouthAmerica.distance(10000).rename('brazil_rivers')
+                distRivers = riversSouthAmerica.distance(10000).rename('south_america_rivers')
                 self.image = self.image.addBands(distRivers.updateMask(mask))
             if covariate == 'brazil_protected_areas':
                 paBrazil = ee.FeatureCollection("users/prp2123/Limites_Shapefiles/unidade_conservacao")
