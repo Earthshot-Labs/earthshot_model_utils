@@ -1,3 +1,6 @@
+# Usage:
+# python3 rf_training_and_inference.py --gcp_bucket 'eartshot-science-team' --gcp_folder_name 'deforestation_risk' --samples_folder_name 'Brazil_samples_csv_scale30_2000numPixels' --tiles_folder_name 'Brazil_Deforestation_Risk_inference_1degree_grid_scale30' --path_to_tiles_local '/Users/margauxmforstyhe/Desktop/Brazil_Deforestation_Risk_inference_1degree_grid_scale30' --csv_samples_file 'Brazil_samples_csv_scale30_2000numPixels_merged.csv' --rf_trees 100 --max_depth 2 --tiles_in_GCP False --run_inference False --feature_names 'aspect' 'brazil_agriculture' 'brazil_pasture' 'brazil_protected_areas' 'brazil_roads' 'brazil_surrounding_forest' 'elevation' 'forest_age' 'hillshade' 'population_density' 'slope' 'south_america_rivers' --response_variable 'Deforestation_risk_response_variable_brazil'
+
 ####### Imports ######
 import pandas as pd
 from osgeo import gdal, ogr, gdal_array
@@ -16,44 +19,73 @@ import glob
 import seaborn as sns
 import matplotlib.pyplot as plt
 from utils import upload_to_bucket, glob_blob_in_GCP
+import argparse
 warnings.filterwarnings("ignore", "Your application has authenticated using end user credentials")
 
 # Tell GDAL to throw Python exceptions, and register all drivers
 gdal.UseExceptions()
 gdal.AllRegister()
 
-
 ################## Variables Definitions ##################
 ##### 1. Global Variables #####
-gcp_bucket = 'eartshot-science-team'
-gcp_folder_name = 'deforestation_risk'
-samples_folder_name = f'Brazil_samples_csv_scale30_2000numPixels'
-name_output_csv_samples_merged_file = 'Brazil_samples_csv_scale30_2000numPixels_merged.csv'
-tiles_folder_name = 'Brazil_Deforestation_Risk_inference_1degree_grid_scale30' 
-path_to_tiles_local = '/Users/margauxmforstyhe/Desktop/Brazil_Deforestation_Risk_inference_1degree_grid_scale30'
+
+parser = argparse.ArgumentParser()
+parser.add_argument('--gcp_bucket', help="GCP bucket name", type=str, required=True, default="eartshot-science-team")
+parser.add_argument('--gcp_folder_name', help="GCP folder name in bucket", type=str, required=True, default="deforestation_risk")
+parser.add_argument('--samples_folder_name', help="Name of samples folder in folder in bucket", type=str, 
+                    required=True, default="Brazil_samples_csv_scale30_2000numPixels")
+parser.add_argument('--tiles_folder_name', help="Name of inference tiles folder in folder in bucket", type=str, 
+                    required=True, default="Brazil_Deforestation_Risk_inference_1degree_grid_scale30")
+parser.add_argument('--path_to_tiles_local', help="Local path to inference tiles", type=str, 
+                    required=False, default='/Users/margauxmforstyhe/Desktop/Brazil_Deforestation_Risk_inference_1degree_grid_scale30')
+parser.add_argument('--csv_samples_file', help="Name of samples csv file", type=str, 
+                    required=True, default='Brazil_samples_csv_scale30_2000numPixels_merged.csv')
+parser.add_argument('--rf_trees', help="Number of trees in RF model", type=int, required=True, default=100)
+parser.add_argument('--max_depth', help="max_depth of trees in RF model", type=int, required=True, default=4)
+parser.add_argument('--random_state', help="random_state in RF model", type=int, required=False, default=None)
+parser.add_argument('--n_cores', help="n_cores to run RF model", type=int, required=False, default=-1)
+parser.add_argument('--tiles_in_GCP', help="If running with local tiles: tiles_in_GCP = False", type=bool, required=False, default=True)
+parser.add_argument('--run_inference', help="If True: Training + Inference, if False: only running training", type=bool, required=False, default=True)
+parser.add_argument('--use_test_val_buffered_sets', help="If True, uses the buffered test and val sets exported with dataset_builder", 
+                    type=bool, required=False, default=True)
+parser.add_argument('--feature_names', help="Name of predictors bands", default=None, nargs="+", required=True)
+parser.add_argument('--response_variable', help="Name of response variable band", type=str, 
+                    default='Deforestation_risk_response_variable_brazil', required=True)
+
+
+args = parser.parse_args()
+gcp_bucket = args.gcp_bucket 
+gcp_folder_name = args.gcp_folder_name
+samples_folder_name = args.samples_folder_name
+name_output_csv_samples_merged_file = args.csv_samples_file
+tiles_folder_name = args.tiles_folder_name
+path_to_tiles_local = args.path_to_tiles_local
 
 # Define RF parameters
-est = 100
-max_depth = 2  
-random_state = None
+est = args.rf_trees
+max_depth = args.max_depth
+random_state = args.random_state
 # how many cores should be used?
 # -1 -> all available cores
-n_cores = -1
+n_cores = args.n_cores
 
 # If running with local tiles: tiles_in_GCP = False
-tiles_in_GCP = False
+tiles_in_GCP = args.tiles_in_GCP
 # If True: Training + Inference, if False: only running training
-run_inference = True
+run_inference = args.run_inference
 # If True, uses the buffered test and val sets exported with dataset_builder
-use_test_val_buffered_sets = True
+use_test_val_buffered_sets = args.use_test_val_buffered_sets
 
 ##### 2. Variables for: Random Forest training #####
-feature_names = ['aspect', 'brazil_agriculture', 'brazil_pasture', 'brazil_protected_areas', 'brazil_roads',
-                 'brazil_surrounding_forest', 'elevation', 'forest_age', 'hillshade', 'population_density',
-                 'slope', 'south_america_rivers']
+feature_names = args.feature_names
+# ['aspect', 'brazil_agriculture', 'brazil_pasture', 'brazil_protected_areas', 'brazil_roads',
+#                  'brazil_surrounding_forest', 'elevation', 'forest_age', 'hillshade', 'population_density',
+#                  'slope', 'south_america_rivers']
 print(f'There are {len(feature_names)} feature names')
 
-label = ['Deforestation_risk_response_variable_brazil']  
+label = [args.response_variable]  
+
+print(f'\n\ngcp_bucket: {gcp_bucket}, \ngcp_folder_name: {gcp_folder_name}, \nsamples_folder_name: {samples_folder_name}, \nname_output_csv_samples_merged_file: {name_output_csv_samples_merged_file}, \ntiles_folder_name: {tiles_folder_name}, \npath_to_tiles_local: {path_to_tiles_local}, \nRF trees: {est}, \nmax_depth: {max_depth}, \nrandom_state: {random_state}, \nn_cores: {n_cores}, \ntiles_in_GCP: {tiles_in_GCP}, \nrun_inference: {run_inference}, \nuse_test_val_buffered_sets: {use_test_val_buffered_sets}, \nfeature_names: {feature_names}, \nlabel: {label}\n\n')
 
 ################## Functions ##################
 def run_rf_inference_on_tile(tile, rf_regressor, tile_as_array):
@@ -111,6 +143,7 @@ def run_rf_inference_on_tile(tile, rf_regressor, tile_as_array):
 
 ################## Random Forest Training ##################
 url_csv_merged_file_bucket = f'gs://{gcp_bucket}/{gcp_folder_name}/{samples_folder_name}/{name_output_csv_samples_merged_file}'
+print(f'Reading sample csv file: {url_csv_merged_file_bucket}...')
 df = pd.read_csv(url_csv_merged_file_bucket)
 print(f"We have {len(df)} samples")
 
