@@ -1,5 +1,5 @@
 # Usage:
-# python3 rf_training_and_inference.py --gcp_bucket 'eartshot-science-team' --gcp_folder_name 'deforestation_risk' --samples_folder_name 'Brazil_samples_csv_scale30_2000numPixels' --tiles_folder_name 'Brazil_Deforestation_Risk_inference_1degree_grid_scale30' --path_to_tiles_local '/Users/margauxmforstyhe/Desktop/Brazil_Deforestation_Risk_inference_1degree_grid_scale30' --csv_samples_file 'Brazil_samples_csv_scale30_2000numPixels_merged.csv' --rf_trees 100 --max_depth 2 --tiles_in_GCP False --run_inference False --feature_names 'aspect' 'brazil_agriculture' 'brazil_pasture' 'brazil_protected_areas' 'brazil_roads' 'brazil_surrounding_forest' 'elevation' 'forest_age' 'hillshade' 'population_density' 'slope' 'south_america_rivers' --response_variable 'Deforestation_risk_response_variable_brazil'
+# python3 rf_training_and_inference.py --gcp_bucket 'eartshot-science-team' --gcp_folder_name 'deforestation_risk' --samples_folder_name 'Brazil_samples_csv_scale30_2000numPixels' --tiles_folder_name 'Brazil_Deforestation_Risk_inference_2degrees_grid_scale30_with_spawn_as_base_raster' --path_to_tiles_local '/Users/margauxmforstyhe/Desktop/Brazil_Deforestation_Risk_inference_2degrees_grid_scale30_with_spawn_as_base_raster' --csv_samples_file 'Brazil_samples_csv_scale30_2000numPixels_val_test_set_10km_buffer.csv' --rf_trees 100 --max_depth 2 --run_inference --use_test_val_buffered_sets --feature_names 'aspect' 'brazil_agriculture' 'brazil_pasture' 'brazil_protected_areas' 'brazil_roads' 'brazil_surrounding_forest' 'elevation' 'forest_age' 'hillshade' 'population_density' 'slope' 'south_america_rivers' --response_variable 'Response_Variable_Brazil_Atlantic_Forest_0forest_1deforested'
 
 ####### Imports ######
 import pandas as pd
@@ -44,13 +44,14 @@ parser.add_argument('--rf_trees', help="Number of trees in RF model", type=int, 
 parser.add_argument('--max_depth', help="max_depth of trees in RF model", type=int, required=True, default=4)
 parser.add_argument('--random_state', help="random_state in RF model", type=int, required=False, default=None)
 parser.add_argument('--n_cores', help="n_cores to run RF model", type=int, required=False, default=-1)
-parser.add_argument('--tiles_in_GCP', help="If running with local tiles: tiles_in_GCP = False", type=bool, required=False, default=True)
-parser.add_argument('--run_inference', help="If True: Training + Inference, if False: only running training", type=bool, required=False, default=True)
+parser.add_argument('--tiles_in_GCP', help="If running with local tiles: tiles_in_GCP = False", action='store_true')
+parser.add_argument('--run_inference', help="If True: Training + Inference, if False: only running training", action='store_true')
 parser.add_argument('--use_test_val_buffered_sets', help="If True, uses the buffered test and val sets exported with dataset_builder", 
-                    type=bool, required=False, default=True)
+                    action='store_true')
 parser.add_argument('--feature_names', help="Name of predictors bands", default=None, nargs="+", required=True)
 parser.add_argument('--response_variable', help="Name of response variable band", type=str, 
                     default='Response_Variable_Brazil_Atlantic_Forest_0forest_1deforested', required=True)
+parser.add_argument('--mask_branch', help="Name of the branch to use for final masking", required=True)
 
 
 args = parser.parse_args()
@@ -60,6 +61,7 @@ samples_folder_name = args.samples_folder_name
 name_output_csv_samples_merged_file = args.csv_samples_file
 tiles_folder_name = args.tiles_folder_name
 path_to_tiles_local = args.path_to_tiles_local
+mask_branch = args.mask_branch
 
 # Define RF parameters
 est = args.rf_trees
@@ -180,7 +182,9 @@ rf_regressor = rf_regressor.fit(X_train, y_train)
 ### Evaluation ###
 print("\nEvaluation on test set...")
 pred_test = rf_regressor.predict(X_test)
-print('Mean Absolute Error (MAE):', metrics.mean_absolute_error(y_test, pred_test))
+print("pred_test:")
+print(pred_test)
+print('\n\n\nMean Absolute Error (MAE):', metrics.mean_absolute_error(y_test, pred_test))
 print('Mean Squared Error (MSE):', metrics.mean_squared_error(y_test, pred_test))
 print('Root Mean Squared Error (RMSE):', np.sqrt(metrics.mean_squared_error(y_test, pred_test)))
 # Check out the "Out-of-Bag" (OOB) prediction score:
@@ -230,6 +234,7 @@ if run_inference:
     gcp_folder_path_inference_tiles = gcp_folder_name + '/' + tiles_folder_name
     # Find names of the predictors tiles in the GCP bucket and store them in list predictors_tiffiles
     if tiles_in_GCP:
+        print("tiles_in_GCP")
         predictors_tiffiles = glob_blob_in_GCP(gcp_bucket=gcp_bucket,
                                                gcp_folder_name=gcp_folder_path_inference_tiles,
                                                extension='.tif')
@@ -241,7 +246,7 @@ if run_inference:
     # Loop through all predictors tiles and run inference on them
     # Results are saved locally, then uploaded to GCP, and deleted locally afterwards
     for path in predictors_tiffiles:
-        print(f'\nStarting image: path')
+        print(f'\nStarting image: {path}')
         # Read image
         img_ds = gdal.Open(predictors_tiffiles[i], gdal.GA_ReadOnly)
         print('Image opened')
@@ -269,8 +274,8 @@ if run_inference:
                                                     tile_as_array=tile_as_array)
 
         # Generate mask from first band of our predictors
-        mask = np.copy(tile[:, :, feature_names.index('forest_age')]).astype(
-            np.uint8)  # using the BIOME_NUM layer here to have positive values
+        mask = np.copy(tile[:, :, feature_names.index(mask_branch)]).astype(
+            np.uint8)  # using the mask_branch layer here to have positive values
         # mask = np.copy(tile[:, :, feature_names.index('BIOME_NUM')]).astype(
         #     np.uint8)  # using the BIOME_NUM layer here to have positive values
         print(np.unique(mask))
@@ -279,6 +284,7 @@ if run_inference:
         # Mask predictions raster
         class_prediction.astype(np.float16)
         class_prediction_ = class_prediction * mask
+        
 
         # Save predictions raster
         classification_image = f"{RF_output_folder_temp}/RF_output_{str(datetime.datetime.now()).split('.')[0].replace(' ', '-').replace(':', '_')}_{i}.tif"
@@ -287,7 +293,7 @@ if run_inference:
         cols = tile.shape[1]
         rows = tile.shape[0]
         driver = gdal.GetDriverByName("GTiff")
-        outdata = driver.Create(classification_image, cols, rows, 1, gdal.GDT_UInt16)
+        outdata = driver.Create(classification_image, cols, rows, 1, gdal.GDT_Float32) # gdal.GDT_UInt16
         outdata.SetGeoTransform(img_ds.GetGeoTransform())  ##sets same geotransform as input
         outdata.SetProjection(img_ds.GetProjection())  ##sets same projection as input
         outdata.GetRasterBand(1).WriteArray(class_prediction_)
