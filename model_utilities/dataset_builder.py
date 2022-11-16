@@ -24,7 +24,8 @@ class EEDatasetBuilder():
 
         Parameters
         ----------
-        response_raster: string indicating response dataset (eg: biomass, deforestation risk) to use. Currently accepts 'Spawn_AGB_tCO2e'.
+        response_raster: string indicating response dataset (eg: biomass, deforestation risk) to use. Currently accepts Spawn_AGB_tCO2e, 
+        GEDI_Biomass_1km_tCO2, Walker_AGB_500m_tCO2, Response_Variable_Brazil_Atlantic_Forest_0forest_1deforested.
 
         filter_dict: dictionary of filters (names as keys) and parameters as the value. Parameters are themselves
         specified as key/value pairs in a dictionary. These are the filters that will be applied to create the mask for
@@ -63,10 +64,12 @@ class EEDatasetBuilder():
             walker = ee.Image('users/steve_klosterman/Walker_et_al/Base_Cur_AGB_MgCha_500m')   # re-aligned map
             response = walker.multiply(44/12).select([0], ['tCO2e'])
             response = response.rename(response_raster)
-        elif response_raster == 'Deforestation_risk_response_variable_brazil':
-            response = ee.Image('users/margauxmf-earthshot/deforestation_risk_response_variable_brazil').rename(response_raster)
+        elif response_raster == 'Response_Variable_Brazil_Atlantic_Forest_0forest_1deforested':
+            response = ee.Image('users/prpiffer/Deforestation_Risk/Response_Variable_Atlantic_Forest_0forest_1deforested').rename(response_raster)
+        elif response_raster == None: 
+            response = ee.Image(1)
         else:
-            print("Please select a correct response raster name: Spawn_AGB_tCO2e, GEDI_Biomass_1km_tCO2, Walker_AGB_500m_tCO2, Deforestation_risk_response_variable_brazil if you want to have a response layer -- otherwise, use the function spatial_covariates directly")
+            print("Please select a correct response raster name: Spawn_AGB_tCO2e, GEDI_Biomass_1km_tCO2, Walker_AGB_500m_tCO2, Response_Variable_Brazil_Atlantic_Forest_0forest_1deforested if you want to have a response layer -- otherwise, use the function spatial_covariates directly")
 
         #Apply filters
         for key in filter_dict:
@@ -142,6 +145,9 @@ class EEDatasetBuilder():
                 dataset = ee.FeatureCollection('WCMC/WDPA/current/polygons')
                 mask_protected_areas = ee.Image().float().paint(dataset, 'REP_AREA')
                 response = response.updateMask(mask_protected_areas)
+            if key == 'forest_Brazil_Atlantic_Forest_non_Forest':
+                mask_forest_Atlantic_Forest_Brazil = ee.Image('users/prpiffer/Deforestation_Risk/Forest_Mask_MA_2021')
+                response = response.updateMask(mask_forest_Atlantic_Forest_Brazil.eq(1))
 
         # Create the image from this, or add to it if it's there already
         if self.image is None:
