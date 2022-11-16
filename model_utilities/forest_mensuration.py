@@ -39,22 +39,36 @@ def clean_biomass_data(input_df, d_type, rs_break=125, rs_young=0.285, rs_old=0.
     ---------
     input_df : the dataframe that was cleaned inplace
     """
+    
+    # make missing columns
+    if 'agb_t_ha' not in input_df.columns:
+        input_df['agb_t_ha'] = np.nan
+    if 'bgb_t_ha' not in input_df.columns:
+        input_df['bgb_t_ha'] = np.nan
+    if 'agb_bgb_t_ha' not in input_df.columns:
+        input_df['agb_bgb_t_ha'] = np.nan
+    
     # fill in missing bgb, agb+bgb ------------
     for i in range(0, input_df.shape[0]):
 
         # if have agb but not bgb or agb+bgb ... use root-to-shoot to get bgb ... agb+bgb is sum of cols 2,3
-        if pd.notna(input_df.at[i, 'agb_t_ha']) & pd.isna(input_df.at[i, 'bgb_t_ha']) & pd.isna(
-                input_df.at[i, 'agb_bgb_t_ha']):
+        if (pd.notna(input_df.at[i, 'agb_t_ha']) 
+            & pd.isna(input_df.at[i, 'bgb_t_ha']) 
+            & pd.isna(input_df.at[i, 'agb_bgb_t_ha'])):
+            
             # if agb > rs_break then use rs_old, else use rs_young
             if input_df.at[i, 'agb_t_ha'] > rs_break:
                 input_df.at[i, 'bgb_t_ha'] = input_df.at[i, 'agb_t_ha'] * rs_old
             else:
                 input_df.at[i, 'bgb_t_ha'] = input_df.at[i, 'agb_t_ha'] * rs_young
+            
+            # agb_bgb = agb + bgb
             input_df.at[i, 'agb_bgb_t_ha'] = input_df.at[i, 'agb_t_ha'] + input_df.at[i, 'bgb_t_ha']
 
         # if have agb and bgb but not agb+bgb ... sum cols 2,3
-        elif pd.notna(input_df.at[i, 'agb_t_ha']) & (pd.notna(input_df.at[i, 'bgb_t_ha'])) & pd.isna(
-                input_df.at[i, 'agb_bgb_t_ha']):
+        elif (pd.notna(input_df.at[i, 'agb_t_ha']) 
+            & (pd.notna(input_df.at[i, 'bgb_t_ha'])) 
+            & pd.isna(input_df.at[i, 'agb_bgb_t_ha'])):
             input_df.at[i, 'agb_bgb_t_ha'] = input_df.at[i, 'agb_t_ha'] + input_df.at[i, 'bgb_t_ha']
 
     # average plots of same age
@@ -74,6 +88,7 @@ def clean_biomass_data(input_df, d_type, rs_break=125, rs_young=0.285, rs_old=0.
         input_df['agb_bgb_tCO2e_ha'] = input_df['agb_bgb_t_ha'] * c_to_co2
 
     return input_df
+    
 
 
 # look up wood density from Zanne et al 2009: https://datadryad.org/stash/dataset/doi:10.5061/dryad.234

@@ -30,7 +30,7 @@ class GrowthCurveFit():
         """
         self.max_df = max_df
 
-    def fit_curve(self, curve_formula, curve_fit_params=None, set_params=None):
+    def fit_curve(self, curve_formula, curve_fit_params=None, set_params=None, response_variable_name='agb_bgb_tCO2e_ha'):
         """
         Fit a separate curve for each value of y_max
 
@@ -47,6 +47,8 @@ class GrowthCurveFit():
         set_params: dictionary, if specifying other parameters, e.g. p of Chapman-Richards
 
         """
+        self.response_variable_name = response_variable_name
+
         # Set curve fit params if they aren't input
         if curve_fit_params is None:
             curve_fit_params = {}
@@ -58,7 +60,7 @@ class GrowthCurveFit():
         self.curve_formula = curve_formula
 
         #Set ydata, get age to create xdata
-        curve_fit_params['ydata'] = self.growth_df['agb_bgb_tCO2e_ha']
+        curve_fit_params['ydata'] = self.growth_df[response_variable_name]
         age = np.array(self.growth_df['age']).reshape((self.growth_df['age'].shape[0], 1))
 
         # Lists to hold parameter estimates and covariance matrices for each curve fit
@@ -67,7 +69,7 @@ class GrowthCurveFit():
         self.covars = []
 
         # Loop through array of y_max values, set xdata, do curve fits and store results
-        max_list = self.max_df['agb_bgb_tCO2e_ha'].tolist()
+        max_list = self.max_df[response_variable_name].tolist()
         for this_max in max_list:
             y_max_array = np.ones_like(age) * this_max
             if curve_formula == 'chapman_richards_set_ymax':
@@ -128,7 +130,7 @@ class GrowthCurveFit():
         self.monte_carlo_dfs = {}
 
         # Loop through array of y_max values, set xdata, do curve fits and store results
-        max_list = self.max_df['agb_bgb_tCO2e_ha'].tolist()
+        max_list = self.max_df[self.response_variable_name].tolist()
         for row_counter in range(self.max_df.shape[0]):
             #Get predictions
             predictions, age_years = self.predict(params=self.params[row_counter],
