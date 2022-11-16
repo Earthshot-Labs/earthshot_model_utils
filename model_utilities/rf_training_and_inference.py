@@ -50,7 +50,7 @@ parser.add_argument('--use_test_val_buffered_sets', help="If True, uses the buff
                     type=bool, required=False, default=True)
 parser.add_argument('--feature_names', help="Name of predictors bands", default=None, nargs="+", required=True)
 parser.add_argument('--response_variable', help="Name of response variable band", type=str, 
-                    default='Deforestation_risk_response_variable_brazil', required=True)
+                    default='Response_Variable_Brazil_Atlantic_Forest_0forest_1deforested', required=True)
 
 
 args = parser.parse_args()
