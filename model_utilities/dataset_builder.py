@@ -19,12 +19,12 @@ class EEDatasetBuilder():
         #Initialize connection to GEE
         ee.Initialize()
 
-    def filtered_biomass_layer_from_raster(self, biomass_raster, filter_dict):
+    def filtered_response_layer_from_raster(self, response_raster, filter_dict):
         """
 
         Parameters
         ----------
-        biomass_raster: string indicating biomass dataset to use. Currently accepts 'Spawn_AGB_tCO2e'.
+        response_raster: string indicating response dataset (eg: biomass, deforestation risk) to use. Currently accepts 'Spawn_AGB_tCO2e'.
 
         filter_dict: dictionary of filters (names as keys) and parameters as the value. Parameters are themselves
         specified as key/value pairs in a dictionary. These are the filters that will be applied to create the mask for
@@ -47,26 +47,26 @@ class EEDatasetBuilder():
         """
 
         # Create the biomass layer
-        if biomass_raster == 'Spawn_AGB_tCO2e':
+        if response_raster == 'Spawn_AGB_tCO2e':
             # Global Aboveground and Belowground Biomass Carbon Density Map
             # Get Above Ground Biomass band and convert it to tCO2e
-            biomass = ee.ImageCollection("NASA/ORNL/biomass_carbon_density/v1").first()
-            biomass = biomass.select('agb').multiply(44/12).rename(biomass_raster)
-        elif biomass_raster == 'GEDI_Biomass_1km_tCO2':
+            response = ee.ImageCollection("NASA/ORNL/biomass_carbon_density/v1").first()
+            response = response.select('agb').multiply(44/12).rename(response_raster)
+        elif response_raster == 'GEDI_Biomass_1km_tCO2':
             # GEDI L4B Gridded Aboveground Biomass Density (Version 2)
             # Get Above Ground Biomass band and convert it to tCO2e
-            biomass = ee.Image('LARSE/GEDI/GEDI04_B_002').select('MU').multiply(44/12).multiply(0.47)
-            biomass = biomass.rename(biomass_raster)
-        elif biomass_raster == 'Walker_AGB_500m_tCO2':
+            response = ee.Image('LARSE/GEDI/GEDI04_B_002').select('MU').multiply(44/12).multiply(0.47)
+            response = response.rename(response_raster)
+        elif response_raster == 'Walker_AGB_500m_tCO2':
             # The global potential for increased storage of carbon on land
             # Get Above Ground Biomass band and convert it to tCO2e
             walker = ee.Image('users/steve_klosterman/Walker_et_al/Base_Cur_AGB_MgCha_500m')   # re-aligned map
-            biomass = walker.multiply(44/12).select([0], ['tCO2e'])
-            biomass = biomass.rename(biomass_raster)
-        elif biomass_raster == 'Deforestation_risk_response_variable_brazil':
-            biomass = ee.Image('users/margauxmf-earthshot/deforestation_risk_response_variable_brazil').rename(biomass_raster)
+            response = walker.multiply(44/12).select([0], ['tCO2e'])
+            response = response.rename(response_raster)
+        elif response_raster == 'Deforestation_risk_response_variable_brazil':
+            response = ee.Image('users/margauxmf-earthshot/deforestation_risk_response_variable_brazil').rename(response_raster)
         else:
-            print('Please select a correct biomass raster name: Spawn_AGB_tCO2e, GEDI_Biomass_1km_tCO2, Walker_AGB_500m_tCO2')
+            print("Please select a correct response raster name: Spawn_AGB_tCO2e, GEDI_Biomass_1km_tCO2, Walker_AGB_500m_tCO2, Deforestation_risk_response_variable_brazil if you want to have a response layer -- otherwise, use the function spatial_covariates directly")
 
         #Apply filters
         for key in filter_dict:
@@ -78,7 +78,7 @@ class EEDatasetBuilder():
                 fnf = dataset_forest.select('fnf')
                 # Select pixels = 1 (1:forest, 2:nonforest, 3:water)
                 mask_forest = fnf.eq(1)
-                biomass = biomass.updateMask(mask_forest)
+                response = response.updateMask(mask_forest)
             if key == 'min_forest_age':
                 #Create a forest age mask using the forest age from
                 #"Mapping global forest age from forest inventories, biomass and climate data"
@@ -86,7 +86,7 @@ class EEDatasetBuilder():
                 dataset_age = ee.Image("projects/es-gis-resources/assets/forestage").select([0], ['forestage'])
                 # Get forests older than age
                 mask_age = dataset_age.gte(filter_dict[key]['age'])
-                biomass = biomass.updateMask(mask_age)
+                response = response.updateMask(mask_age)
             if key == 'very_low_density_rural':
                 #Create degree of urbanisation mask using the GHSL - Global Human Settlement Layer:
                 #https://ghsl.jrc.ec.europa.eu/ghs_smod2022.php
@@ -96,7 +96,7 @@ class EEDatasetBuilder():
                     f'projects/ee-mmf-mature-forest-biomass/assets/GHS_SMOD_E{year}_GLOBE_R2022A_54009_1000_V1_0')
                 #Mask to pixels belonging to very low density rural grid cells (11)
                 mask_urbanisation_degree = dataset_urbanisation.eq(11)
-                biomass = biomass.updateMask(mask_urbanisation_degree)
+                response = response.updateMask(mask_urbanisation_degree)
             if key == 'forest_loss':
                 #Create Forest loss proximity mask using the Hansen Global Forest Change v1.9 (2000-2021)
                 #TODO: Review code
@@ -107,7 +107,7 @@ class EEDatasetBuilder():
                 distance_forest_loss = dataset_hansen_loss.lte(int(str(year)[-2] + str(year)[-1])).distance(
                     ee.Kernel.euclidean(distance, 'meters'))
                 mask_forest_loss_proximity = distance_forest_loss.mask().eq(0)
-                biomass = biomass.updateMask(mask_forest_loss_proximity)
+                response = response.updateMask(mask_forest_loss_proximity)
             if key == 'forest_gain':
                 #Create Forest gain proximity mask using the Hansen Global Forest Change v1.9 (2000-2021)
                 # TODO: Review code
@@ -117,7 +117,7 @@ class EEDatasetBuilder():
                 distance_forest_gain = dataset_hansen_gain.distance(
                     ee.Kernel.euclidean(distance, 'meters'))
                 mask_forest_gain_proximity = distance_forest_gain.mask().eq(0)
-                biomass = biomass.updateMask(mask_forest_gain_proximity)
+                response = response.updateMask(mask_forest_gain_proximity)
             if key == 'roads':
                 #Create roads proximity mask using the Global Roads Open Access Data Set (gROADS),
                 #v1 (1980–2010) dataset
@@ -126,7 +126,7 @@ class EEDatasetBuilder():
                 distance = filter_dict[key]['distance']
                 distance_roads = dataset_roads.distance(ee.Number(distance))
                 mask_roads_proximity = distance_roads.mask().eq(0)
-                biomass = biomass.updateMask(mask_roads_proximity)
+                response = response.updateMask(mask_roads_proximity)
             if key == 'fire':
                 #Create past fires mask using FireCCI51: MODIS Fire_cci Burned Area Pixel Product, Version 5.1
                 # TODO: Review code and overall approach
@@ -135,19 +135,19 @@ class EEDatasetBuilder():
                 burnedArea = dataset.select('BurnDate')
                 maxBA = burnedArea.max()
                 mask_past_fires = maxBA.mask().eq(0)
-                biomass = biomass.updateMask(mask_past_fires)
+                response = response.updateMask(mask_past_fires)
             if key == 'protected_areas':
                 #Create protected areas mask
                 # TODO: Review code and overall approach
                 dataset = ee.FeatureCollection('WCMC/WDPA/current/polygons')
                 mask_protected_areas = ee.Image().float().paint(dataset, 'REP_AREA')
-                biomass = biomass.updateMask(mask_protected_areas)
+                response = response.updateMask(mask_protected_areas)
 
-        #Create the image from this, or add to it if it's there already
+        # Create the image from this, or add to it if it's there already
         if self.image is None:
-            self.image = biomass
+            self.image = response
         else:
-            self.image.addBands(biomass)
+            self.image.addBands(response)
 
     def rename_bands(self, image, prefix):
         """
@@ -176,18 +176,19 @@ class EEDatasetBuilder():
         Parameters
         ----------
         covariates: list of strings, taken from ['ecoregion', 'terraclimate', 'soil', 'bioclim',
-        'terrain']
+        'terrain', 'brazil_roads', 'terrain', 'brazil_protected_areas', 'population_density',
+        'forest_age', 'urbanization', 'brazil_surrounding_forest', 'brazil_pasture',
+        'brazil_agriculture', 'south_america_rivers', 'urban_distance']
 
         -------
 
         """
-        # If the biomass image isn't already created, make an empty image
-        # Otherwise, expect a single band image with a mask that will be used here
+        # If the response image is empty because we are working on creating inference tiles for example, response = ee Image with constant value = 1
+        # constant value = 1 because otherwise the image is empty and will masked out all pixels in updateMask
         if self.image is None:
-            self.image = ee.Image()
-        else:
-            mask = self.image.mask()
-
+            self.image = ee.Image(1)
+        
+        mask = self.image.mask()
         for covariate in covariates:
             # MapBiomas land use cover maps: 
             # Select year 2010 as is it the start of our period
@@ -288,12 +289,17 @@ class EEDatasetBuilder():
                                       }).rename('brazil_agriculture')
                 self.image = self.image.addBands(nearbyAgriculture.updateMask(mask))
             if covariate == 'urban_distance':
-                urban = MapBiomas_v7.remap([24],[1],0)
-                urban = urban.gt(0).selfMask()
                 # Distance to urban centers:
+                urbanMA = ee.FeatureCollection("users/prpiffer/Deforestation_Risk/MapBiomas_Urban_Vector_MA")
                 # TODO not hard coded distances
-                distUrban = urban.distance(ee.Kernel.euclidean(100000, 'meters', normalize=False)).rename('urban_distance')
-                self.image = self.image.addBands(distUrban.updateMask(mask))
+                distUrbanAcre = urbanMA.distance(100000).rename('urban_distance')
+                self.image = self.image.addBands(distUrbanAcre.updateMask(mask))
+                
+            # Removing band "constant" created when response raster is empty
+            bands_names = self.image.bandNames().getInfo()
+            if "constant" in bands_names:
+                bands_names.remove("constant")
+                self.image = self.image.select(bands_names) 
 
 
     # TODO: test if ee asset looks good after export
