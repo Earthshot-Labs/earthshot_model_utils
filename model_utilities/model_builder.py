@@ -19,6 +19,7 @@ import glob
 import seaborn as sns
 import matplotlib.pyplot as plt
 from utils import upload_to_bucket, glob_blob_in_GCP
+from sklearn.model_selection import GridSearchCV
 import argparse
 warnings.filterwarnings("ignore", "Your application has authenticated using end user credentials")
 
@@ -30,7 +31,7 @@ gdal.AllRegister()
 
 class ModelBuilder():
 
-    def __init__(self, nb_trees, max_depth, random_state=42, n_cores=-1, oob_score=True, bootstrap=True):
+    def __init__(self):
         """
         A class for building, training and running inference of an sklearn Randon Forest spatial model.
         
@@ -42,21 +43,47 @@ class ModelBuilder():
         are pure or until all leaves contain less than min_samples_split samples.
         - random_state: (int) Controls both the randomness of the bootstrapping of the samples used when 
         building trees (if bootstrap=True) and the sampling of the features to consider when looking for the best split at each node (if max_features < n_features)
+        - max_features: (string) The number of features to consider when looking for the best split (“sqrt”, “log2”, None)
         - n_cores: (int) The number of jobs to run in parallel.
         - oob_score: Whether to use out-of-bag samples to estimate the generalization score. Only available if bootstrap=True
         - bootstrap: Whether bootstrap samples are used when building trees. If False, the whole dataset is used to build each tree.
+        - criterion: (string) {“squared_error”, “absolute_error”, “poisson”} The function to measure the quality of a split. 
         ----------
         
         """
         # Initialize the model 
-        self.model = RandomForestRegressor(n_estimators=nb_trees, oob_score=oob_score, verbose=1, 
-                                             n_jobs=n_cores, max_depth=max_depth,
-                                             bootstrap=bootstrap, random_state=random_state)
+        self.model = None
+        
         # Inialize parameters
         self.feature_names = []
         self.response_variable = []
         self.gcp_bucket = None
         self.gcp_folder_name = None
+        
+    def initialize_model(nb_trees, max_depth, random_state=42, max_features=1.0, n_cores=-1, 
+                         oob_score=True, bootstrap=True, criterion='squared_error'):
+        """
+        Initialize the sklearn Randon Forest spatial model.
+        
+        Parameters
+        ----------
+        - nb_trees: (int) number of trees for the Random Forest model
+        - max_depth: (int) The maximum depth of the tree. If None, then nodes are expanded until all leaves 
+        are pure or until all leaves contain less than min_samples_split samples.
+        - random_state: (int) Controls both the randomness of the bootstrapping of the samples used when 
+        building trees (if bootstrap=True) and the sampling of the features to consider when looking for the best split at each node (if max_features < n_features)
+        - max_features: (string) The number of features to consider when looking for the best split (“sqrt”, “log2”, None)
+        - n_cores: (int) The number of jobs to run in parallel.
+        - oob_score: Whether to use out-of-bag samples to estimate the generalization score. Only available if bootstrap=True
+        - bootstrap: Whether bootstrap samples are used when building trees. If False, the whole dataset is used to build each tree.
+        - criterion: (string) {“squared_error”, “absolute_error”, “poisson”} The function to measure the quality of a split. 
+        ----------
+        
+        """
+        self.model = RandomForestRegressor(n_estimators=nb_trees, oob_score=oob_score, verbose=1, 
+                                             n_jobs=n_cores, max_depth=max_depth, max_features=max_features,
+                                             bootstrap=bootstrap, random_state=random_state, criterion=criterion)
+        
         
     def run_rf_inference_on_tile(self, tile, tile_as_array):
         """
@@ -161,6 +188,38 @@ class ModelBuilder():
         print(f"Training samples: {len(self.X_train)}")
         print(f"Test samples: {len(self.X_test)}")
         print(f"Validation samples: {len(self.X_val)}")
+        
+    def grid_search(self, n_estimators=[100, 200, 500], max_features=['sqrt', 'log2'], max_depth=[4,5,6,7,8], 
+                    criterion=['squared_error', 'absolute_error'], random_state=42):
+        """
+            Run Grid Search to find best hyper parameters
+
+        Parameters
+        ----------
+        - random_state:
+        - n_estimators: (list) list of number of trees to test 
+        - max_features: (list) list of max_features to test 
+        - max_depth: (list) list of max_depth to test 
+        - criterion: (list) list of criterion to test 
+        -------
+
+        Returns
+        ----------
+        - GSCV.best_params_: best parameters to use for training
+        -------
+        """
+        random_forest_tuning = RandomForestRegressor(random_state=random_state)  
+        param_grid = { 
+                'n_estimators': n_estimators,
+                'max_features': max_features,
+                'max_depth' : max_depth, 
+                'criterion' : criterion
+            }
+        GSCV = GridSearchCV(estimator=random_forest_tuning, param_grid=param_grid, cv=5, verbose=1)
+        GSCV.fit(self.X_val, self.y_val.values.ravel())
+        print(GSCV.best_params_)
+        return GSCV.best_params_
+        
 
     def train(self):
         """
@@ -348,13 +407,14 @@ class ModelBuilder():
             print(paths_pred_rasters[i])
             # if it's the first tile, we merge the two first tiles together
             if i == 0:
-                print('python3', 'gdal_merge.py', "-ot", "Float32", f"-o", f"{output_merged_tif.replace('.tif', f'_{i}.tif')}", f"{paths_pred_rasters[i]}", f"{paths_pred_rasters[i+1]}", "-a_nodata", "0", "-n", "0")
-                subprocess.run(['python3', 'gdal_merge.py', "-ot", "Float32", f"-o", f"{output_merged_tif.replace('.tif', f'_{i}.tif')}", f"{paths_pred_rasters[i]}", f"{paths_pred_rasters[i+1]}", "-a_nodata", "0", "-n", "0"])
+                print('python3', 'gdal_merge.py', "-ot", "Float32", f"-o", f"{output_merged_tif.replace('.tif', f'_{i}.tif')}", f"{paths_pred_rasters[i]}", f"{paths_pred_rasters[i+1]}", "-a_nodata", "0", "-n", "0", "-co", "COMPRESS=DEFLATE")
+                subprocess.run(['python3', 'gdal_merge.py', "-ot", "Float32", f"-o", f"{output_merged_tif.replace('.tif', f'_{i}.tif')}", f"{paths_pred_rasters[i]}", f"{paths_pred_rasters[i+1]}", "-a_nodata", "0", "-n", "0", "-co", "COMPRESS=DEFLATE"])
             # then we merge the previously merged output with the next tile
             else:
-                subprocess.run(['python3', 'gdal_merge.py', "-ot", "Float32", f"-o", f"{output_merged_tif.replace('.tif', f'_{i}.tif')}", f"{output_merged_tif.replace('.tif', f'_{i-1}.tif')}", f"{paths_pred_rasters[i]}", "-a_nodata", "0", "-n", "0"])
-                # We remove the previous merged output -- no need to keep it
-                os.remove(output_merged_tif.replace('.tif', f'_{i-1}.tif'))
+                print('\npython3', 'gdal_merge.py', "-ot", "Float32", f"-o", f"{output_merged_tif.replace('.tif', f'_{i}.tif')}", f"{output_merged_tif.replace('.tif', f'_{i-1}.tif')}", f"{paths_pred_rasters[i]}", "-a_nodata", "0", "-n", "0", "-co", "COMPRESS=DEFLATE")
+            subprocess.run(['python3', 'gdal_merge.py', "-ot", "Float32", f"-o", f"{output_merged_tif.replace('.tif', f'_{i}.tif')}", f"{output_merged_tif.replace('.tif', f'_{i-1}.tif')}", f"{paths_pred_rasters[i]}", "-a_nodata", "0", "-n", "0", "-co", "COMPRESS=DEFLATE"])
+            # We remove the previous merged output -- no need to keep it
+            os.remove(output_merged_tif.replace('.tif', f'_{i-1}.tif'))
 
         print('Done. Upload final merge tif to GCP bucket')
         # upload final merge tif to GCP bucket

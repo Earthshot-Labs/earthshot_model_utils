@@ -336,13 +336,14 @@ if run_inference:
         print(paths_pred_rasters[i])
         # if it's the first tile, we merge the two first tiles together
         if i == 0:
-            print('python3', 'gdal_merge.py', "-ot", "Float32", f"-o", f"{output_merged_tif.replace('.tif', f'_{i}.tif')}", f"{paths_pred_rasters[i]}", f"{paths_pred_rasters[i+1]}", "-a_nodata", "0", "-n", "0")
-            subprocess.run(['python3', 'gdal_merge.py', "-ot", "Float32", f"-o", f"{output_merged_tif.replace('.tif', f'_{i}.tif')}", f"{paths_pred_rasters[i]}", f"{paths_pred_rasters[i+1]}", "-a_nodata", "0", "-n", "0"])
+            print('python3', 'gdal_merge.py', "-ot", "Float32", f"-o", f"{output_merged_tif.replace('.tif', f'_{i}.tif')}", f"{paths_pred_rasters[i]}", f"{paths_pred_rasters[i+1]}", "-a_nodata", "0", "-n", "0", "-co", "COMPRESS=DEFLATE")
+            subprocess.run(['python3', 'gdal_merge.py', "-ot", "Float32", f"-o", f"{output_merged_tif.replace('.tif', f'_{i}.tif')}", f"{paths_pred_rasters[i]}", f"{paths_pred_rasters[i+1]}", "-a_nodata", "0", "-n", "0", "-co", "COMPRESS=DEFLATE"])
         # then we merge the previously merged output with the next tile
         else:
-            subprocess.run(['python3', 'gdal_merge.py', "-ot", "Float32", f"-o", f"{output_merged_tif.replace('.tif', f'_{i}.tif')}", f"{output_merged_tif.replace('.tif', f'_{i-1}.tif')}", f"{paths_pred_rasters[i]}", "-a_nodata", "0", "-n", "0"])
+            print('python3', 'gdal_merge.py', "-ot", "Float32", f"-o", f"{output_merged_tif.replace('.tif', f'_{i}.tif')}", f"{output_merged_tif.replace('.tif', f'_{i-1}.tif')}", f"{paths_pred_rasters[i]}", "-a_nodata", "0", "-n", "0", "-co", "COMPRESS=DEFLATE")
+            subprocess.run(['python3', 'gdal_merge.py', "-ot", "Float32", f"-o", f"{output_merged_tif.replace('.tif', f'_{i}.tif')}", f"{output_merged_tif.replace('.tif', f'_{i-1}.tif')}", f"{paths_pred_rasters[i]}", "-a_nodata", "0", "-n", "0", "-co", "COMPRESS=DEFLATE"])
             # We remove the previous merged output -- no need to keep it
-            os.remove(output_merged_tif.replace('.tif', f'_{i-1}.tif'))
+            # os.remove(output_merged_tif.replace('.tif', f'_{i-1}.tif'))
 
     print('Done. Upload final merge tif to GCP bucket')
     # upload final merge tif to GCP bucket
