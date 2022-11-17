@@ -179,48 +179,48 @@ rf_regressor = RandomForestRegressor(n_estimators=est, oob_score=True, verbose=1
 X_train = np.nan_to_num(X_train)
 rf_regressor = rf_regressor.fit(X_train, y_train)
 
-### Evaluation ###
-print("\nEvaluation on test set...")
-pred_test = rf_regressor.predict(X_test)
-print("pred_test:")
-print(pred_test)
-print('\n\n\nMean Absolute Error (MAE):', metrics.mean_absolute_error(y_test, pred_test))
-print('Mean Squared Error (MSE):', metrics.mean_squared_error(y_test, pred_test))
-print('Root Mean Squared Error (RMSE):', np.sqrt(metrics.mean_squared_error(y_test, pred_test)))
-# Check out the "Out-of-Bag" (OOB) prediction score:
-print('OOB prediction of accuracy is: {oob}%\n'.format(oob=rf_regressor.oob_score_ * 100))
-print("R2:", metrics.r2_score(y_test, pred_test))
+# ### Evaluation ###
+# print("\nEvaluation on test set...")
+# pred_test = rf_regressor.predict(X_test)
+# print("pred_test:")
+# print(pred_test)
+# print('\n\n\nMean Absolute Error (MAE):', metrics.mean_absolute_error(y_test, pred_test))
+# print('Mean Squared Error (MSE):', metrics.mean_squared_error(y_test, pred_test))
+# print('Root Mean Squared Error (RMSE):', np.sqrt(metrics.mean_squared_error(y_test, pred_test)))
+# # Check out the "Out-of-Bag" (OOB) prediction score:
+# print('OOB prediction of accuracy is: {oob}%\n'.format(oob=rf_regressor.oob_score_ * 100))
+# print("R2:", metrics.r2_score(y_test, pred_test))
 
-plt.figure(figsize=(20, 20))
-plt.plot(list(range(0, int(y_test.max()))), ls='dashed', alpha=0.3)
-plt.scatter(y_test, pred_test, color='black')
-plt.title("Scatter plot of the Latin America model's performance predicting potential mature forest AGB")
-plt.xlabel('Test AGB (tCO2)')
-plt.ylabel('Predicted AGB (tCO2)')
-plt.savefig(f'scatter_plot_test_set_{len(feature_names)}features_{est}trees_{max_depth}max_depth_{random_state}random_state.png')
+# plt.figure(figsize=(20, 20))
+# plt.plot(list(range(0, int(y_test.max()))), ls='dashed', alpha=0.3)
+# plt.scatter(y_test, pred_test, color='black')
+# plt.title("Scatter plot of the Latin America model's performance predicting potential mature forest AGB")
+# plt.xlabel('Test AGB (tCO2)')
+# plt.ylabel('Predicted AGB (tCO2)')
+# plt.savefig(f'scatter_plot_test_set_{len(feature_names)}features_{est}trees_{max_depth}max_depth_{random_state}random_state.png')
 
-feature_imp = pd.DataFrame({'feature_name': feature_names,
-                            'importance': rf_regressor.feature_importances_}).sort_values('importance', ascending=False)
-feature_imp.to_csv(f'features_importances_{len(feature_names)}features_{est}trees_{max_depth}max_depth_{random_state}random_state.csv')
+# feature_imp = pd.DataFrame({'feature_name': feature_names,
+#                             'importance': rf_regressor.feature_importances_}).sort_values('importance', ascending=False)
+# feature_imp.to_csv(f'features_importances_{len(feature_names)}features_{est}trees_{max_depth}max_depth_{random_state}random_state.csv')
 
-fig, ax = plt.subplots(figsize=(20, 20))
-sns.barplot(x=feature_imp.importance, y=feature_imp.feature_name, ax=ax)
-plt.xlabel('Feature Importance Score')
-plt.ylabel('Features')
-plt.title("Visualizing Important Features", pad=15, size=14)
-plt.savefig(f'features_importance_{len(feature_names)}features_{est}trees_{max_depth}max_depth_{random_state}random_state.png')
+# fig, ax = plt.subplots(figsize=(20, 20))
+# sns.barplot(x=feature_imp.importance, y=feature_imp.feature_name, ax=ax)
+# plt.xlabel('Feature Importance Score')
+# plt.ylabel('Features')
+# plt.title("Visualizing Important Features", pad=15, size=14)
+# plt.savefig(f'features_importance_{len(feature_names)}features_{est}trees_{max_depth}max_depth_{random_state}random_state.png')
 
-### Evaluation ###
-if use_test_val_buffered_sets:
-    print("\nEvaluation on val set...")
-    pred_val = rf_regressor.predict(X_val)
-    print('Mean Absolute Error (MAE):', metrics.mean_absolute_error(y_val, pred_val))
-    print('Mean Squared Error (MSE):', metrics.mean_squared_error(y_val, pred_val))
-    print('Root Mean Squared Error (RMSE):', np.sqrt(metrics.mean_squared_error(y_val, pred_val)))
-    print("Val R2:", metrics.r2_score(y_val, pred_val))
+# ### Evaluation ###
+# if use_test_val_buffered_sets:
+#     print("\nEvaluation on val set...")
+#     pred_val = rf_regressor.predict(X_val)
+#     print('Mean Absolute Error (MAE):', metrics.mean_absolute_error(y_val, pred_val))
+#     print('Mean Squared Error (MSE):', metrics.mean_squared_error(y_val, pred_val))
+#     print('Root Mean Squared Error (RMSE):', np.sqrt(metrics.mean_squared_error(y_val, pred_val)))
+#     print("Val R2:", metrics.r2_score(y_val, pred_val))
 
-    # Check out the "Out-of-Bag" (OOB) prediction score:
-    print('OOB prediction of accuracy is: {oob}%\n'.format(oob=rf_regressor.oob_score_ * 100))
+#     # Check out the "Out-of-Bag" (OOB) prediction score:
+#     print('OOB prediction of accuracy is: {oob}%\n'.format(oob=rf_regressor.oob_score_ * 100))
 
 
 ################## Random Forest Inference ##################
@@ -242,80 +242,80 @@ if run_inference:
         predictors_tiffiles = glob.glob(path_to_tiles_local + '/*.tif')
     print(f"There are {len(predictors_tiffiles)} inference tiles")
 
-    i = 0
-    # Loop through all predictors tiles and run inference on them
-    # Results are saved locally, then uploaded to GCP, and deleted locally afterwards
-    for path in predictors_tiffiles:
-        print(f'\nStarting image: {path}')
-        # Read image
-        img_ds = gdal.Open(predictors_tiffiles[i], gdal.GA_ReadOnly)
-        print('Image opened')
-        bands = [img_ds.GetRasterBand(i).GetDescription() for i in range(1, img_ds.RasterCount + 1)]
+#     i = 0
+#     # Loop through all predictors tiles and run inference on them
+#     # Results are saved locally, then uploaded to GCP, and deleted locally afterwards
+#     for path in predictors_tiffiles:
+#         print(f'\nStarting image: {path}')
+#         # Read image
+#         img_ds = gdal.Open(predictors_tiffiles[i], gdal.GA_ReadOnly)
+#         print('Image opened')
+#         bands = [img_ds.GetRasterBand(i).GetDescription() for i in range(1, img_ds.RasterCount + 1)]
 
-        # Initialize tile that will only have the predictors features bands
-        tile = np.zeros((img_ds.RasterYSize, img_ds.RasterXSize, len(feature_names)),
-                        gdal_array.GDALTypeCodeToNumericTypeCode(img_ds.GetRasterBand(1).DataType))
-        # Looping through the features used in the training and adding them as bands of {tile} in the same order as what
-        # was used during the training
-        for b in range(len(feature_names)):
-            corresponding_raster_band_index = bands.index(feature_names[b])
-            tile[:, :, b] = img_ds.GetRasterBand(corresponding_raster_band_index + 1).ReadAsArray()
-        print(f"tile shape: {tile.shape}")
+#         # Initialize tile that will only have the predictors features bands
+#         tile = np.zeros((img_ds.RasterYSize, img_ds.RasterXSize, len(feature_names)),
+#                         gdal_array.GDALTypeCodeToNumericTypeCode(img_ds.GetRasterBand(1).DataType))
+#         # Looping through the features used in the training and adding them as bands of {tile} in the same order as what
+#         # was used during the training
+#         for b in range(len(feature_names)):
+#             corresponding_raster_band_index = bands.index(feature_names[b])
+#             tile[:, :, b] = img_ds.GetRasterBand(corresponding_raster_band_index + 1).ReadAsArray()
+#         print(f"tile shape: {tile.shape}")
 
-        # Take our full image and reshape into long 2d array (nrow * ncol, nband) for classification
-        new_shape = (tile.shape[0] * tile.shape[1], tile.shape[2])
-        tile_as_array = tile[:, :, :np.int(tile.shape[2])].reshape(new_shape)
-        print('Reshaped from {o} to {n}'.format(o=tile.shape, n=tile_as_array.shape))
-        tile_as_array = np.nan_to_num(tile_as_array)
-        print(tile_as_array.shape)
+#         # Take our full image and reshape into long 2d array (nrow * ncol, nband) for classification
+#         new_shape = (tile.shape[0] * tile.shape[1], tile.shape[2])
+#         tile_as_array = tile[:, :, :np.int(tile.shape[2])].reshape(new_shape)
+#         print('Reshaped from {o} to {n}'.format(o=tile.shape, n=tile_as_array.shape))
+#         tile_as_array = np.nan_to_num(tile_as_array)
+#         print(tile_as_array.shape)
 
-        # Predict for each pixel
-        class_prediction = run_rf_inference_on_tile(tile=tile, rf_regressor=rf_regressor,
-                                                    tile_as_array=tile_as_array)
+#         # Predict for each pixel
+#         class_prediction = run_rf_inference_on_tile(tile=tile, rf_regressor=rf_regressor,
+#                                                     tile_as_array=tile_as_array)
 
-        # Generate mask from first band of our predictors
-        mask = np.copy(tile[:, :, feature_names.index(mask_branch)]).astype(
-            np.uint8)  # using the mask_branch layer here to have positive values
-        # mask = np.copy(tile[:, :, feature_names.index('BIOME_NUM')]).astype(
-        #     np.uint8)  # using the BIOME_NUM layer here to have positive values
-        print(np.unique(mask))
-        mask[mask > 0] = 1  # all actual pixels have a value of 1.0
+#         # Generate mask from first band of our predictors
+#         mask = np.copy(tile[:, :, feature_names.index(mask_branch)]).astype(
+#             np.uint8)  # using the mask_branch layer here to have positive values
+#         # mask = np.copy(tile[:, :, feature_names.index('BIOME_NUM')]).astype(
+#         #     np.uint8)  # using the BIOME_NUM layer here to have positive values
+#         print(np.unique(mask))
+#         mask[mask > 0] = 1  # all actual pixels have a value of 1.0
 
-        # Mask predictions raster
-        class_prediction.astype(np.float16)
-        class_prediction_ = class_prediction * mask
+#         # Mask predictions raster
+#         class_prediction.astype(np.float16)
+#         class_prediction_ = class_prediction * mask
         
 
-        # Save predictions raster
-        classification_image = f"{RF_output_folder_temp}/RF_output_{str(datetime.datetime.now()).split('.')[0].replace(' ', '-').replace(':', '_')}_{i}.tif"
-        class_prediction_.astype(np.float16)
-        print(class_prediction_.shape)
-        cols = tile.shape[1]
-        rows = tile.shape[0]
-        driver = gdal.GetDriverByName("GTiff")
-        outdata = driver.Create(classification_image, cols, rows, 1, gdal.GDT_Float32) # gdal.GDT_UInt16
-        outdata.SetGeoTransform(img_ds.GetGeoTransform())  ##sets same geotransform as input
-        outdata.SetProjection(img_ds.GetProjection())  ##sets same projection as input
-        outdata.GetRasterBand(1).WriteArray(class_prediction_)
-        outdata.GetRasterBand(1).SetNoDataValue(0)
-        outdata.FlushCache()  ##saves to disk
-        outdata = None
-        band = None
-        imgs_ds = None
-        print('Image saved to: {}\n\n\n'.format(classification_image))
+#         # Save predictions raster
+#         classification_image = f"{RF_output_folder_temp}/RF_output_{str(datetime.datetime.now()).split('.')[0].replace(' ', '-').replace(':', '_')}_{i}.tif"
+#         class_prediction_.astype(np.float16)
+#         print(class_prediction_.shape)
+#         cols = tile.shape[1]
+#         rows = tile.shape[0]
+#         driver = gdal.GetDriverByName("GTiff")
+#         outdata = driver.Create(classification_image, cols, rows, 1, gdal.GDT_Float32) # gdal.GDT_UInt16
+#         outdata.SetGeoTransform(img_ds.GetGeoTransform())  ##sets same geotransform as input
+#         outdata.SetProjection(img_ds.GetProjection())  ##sets same projection as input
+#         outdata.GetRasterBand(1).WriteArray(class_prediction_)
+#         outdata.GetRasterBand(1).SetNoDataValue(0)
+#         outdata.FlushCache()  ##saves to disk
+#         outdata = None
+#         band = None
+#         imgs_ds = None
+#         print('Image saved to: {}\n\n\n'.format(classification_image))
 
-        i = i + 1
-        if tiles_in_GCP:
-            # Upload to bucket
-            blob_path = upload_to_bucket(gcp_bucket=gcp_bucket,
-                                         folder_name=gcp_folder_name + '/' + RF_output_folder_name,
-                                         file_name=classification_image.split('/')[-1],
-                                         file_local_path=classification_image)
-            print(f"Image uploaded to GCP bucket: {blob_path}")
-            # Delete image locally
-            os.remove(classification_image)
+#         i = i + 1
+#         if tiles_in_GCP:
+#             # Upload to bucket
+#             blob_path = upload_to_bucket(gcp_bucket=gcp_bucket,
+#                                          folder_name=gcp_folder_name + '/' + RF_output_folder_name,
+#                                          file_name=classification_image.split('/')[-1],
+#                                          file_local_path=classification_image)
+#             print(f"Image uploaded to GCP bucket: {blob_path}")
+#             # Delete image locally
+#             os.remove(classification_image)
 
-    print(f"Done: {i} tiles predicted")
+#     print(f"Done: {i} tiles predicted")
 
     ################## Merge all predictions raster tiles ##################
     output_merged_tif = RF_output_folder_temp + '/merged.tif'
@@ -336,11 +336,11 @@ if run_inference:
         print(paths_pred_rasters[i])
         # if it's the first tile, we merge the two first tiles together
         if i == 0:
-            print('python3', 'gdal_merge.py', f"-o", f"{output_merged_tif.replace('.tif', f'_{i}.tif')}", f"{paths_pred_rasters[i]}", f"{paths_pred_rasters[i+1]}", "-a_nodata", "0", "-n", "0")
-            subprocess.run(['python3', 'gdal_merge.py', f"-o", f"{output_merged_tif.replace('.tif', f'_{i}.tif')}", f"{paths_pred_rasters[i]}", f"{paths_pred_rasters[i+1]}", "-a_nodata", "0", "-n", "0"])
+            print('python3', 'gdal_merge.py', "-ot", "Float32", f"-o", f"{output_merged_tif.replace('.tif', f'_{i}.tif')}", f"{paths_pred_rasters[i]}", f"{paths_pred_rasters[i+1]}", "-a_nodata", "0", "-n", "0")
+            subprocess.run(['python3', 'gdal_merge.py', "-ot", "Float32", f"-o", f"{output_merged_tif.replace('.tif', f'_{i}.tif')}", f"{paths_pred_rasters[i]}", f"{paths_pred_rasters[i+1]}", "-a_nodata", "0", "-n", "0"])
         # then we merge the previously merged output with the next tile
         else:
-            subprocess.run(['python3', 'gdal_merge.py', f"-o", f"{output_merged_tif.replace('.tif', f'_{i}.tif')}", f"{output_merged_tif.replace('.tif', f'_{i-1}.tif')}", f"{paths_pred_rasters[i]}", "-a_nodata", "0", "-n", "0"])
+            subprocess.run(['python3', 'gdal_merge.py', "-ot", "Float32", f"-o", f"{output_merged_tif.replace('.tif', f'_{i}.tif')}", f"{output_merged_tif.replace('.tif', f'_{i-1}.tif')}", f"{paths_pred_rasters[i]}", "-a_nodata", "0", "-n", "0"])
             # We remove the previous merged output -- no need to keep it
             os.remove(output_merged_tif.replace('.tif', f'_{i-1}.tif'))
 
