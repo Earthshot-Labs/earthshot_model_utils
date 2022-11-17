@@ -60,7 +60,7 @@ class ModelBuilder():
         self.gcp_bucket = None
         self.gcp_folder_name = None
         
-    def initialize_model(nb_trees, max_depth, random_state=42, max_features=1.0, n_cores=-1, 
+    def initialize_model(self, nb_trees, max_depth, random_state=42, max_features=1.0, n_cores=-1, 
                          oob_score=True, bootstrap=True, criterion='squared_error'):
         """
         Initialize the sklearn Randon Forest spatial model.
@@ -183,8 +183,8 @@ class ModelBuilder():
             self.X_val = []
             self.y_val = []
 
-        self.X_train = np.nan_to_num(self.X_train)
-        self.y_train = np.nan_to_num(self.y_train)
+        # self.X_train = np.nan_to_num(self.X_train)
+        # self.y_train = np.nan_to_num(self.y_train)
         print(f"Training samples: {len(self.X_train)}")
         print(f"Test samples: {len(self.X_test)}")
         print(f"Validation samples: {len(self.X_val)}")
@@ -227,7 +227,7 @@ class ModelBuilder():
         -------
 
         """
-        self.model = self.model.fit(self.X_train, self.y_train)
+        self.model = self.model.fit(self.X_train, self.y_train.values.ravel())
 
     def evaluate(self, X_test, y_test, save_figures=True, saving_base_output_name=''):
         """
@@ -242,6 +242,7 @@ class ModelBuilder():
 
         Returns
         ----------
+        - y_pred_test: (array) predictions results on X_test
         - mae: (float) Mean Absolute Error
         - mse: (float) Mean Squared Error
         - rmse: (float) Root Mean Squared Error
@@ -251,12 +252,12 @@ class ModelBuilder():
         -------
         """
         print("\nEvaluation...")
-        pred_test = self.model.predict(X_test)
-        mae = metrics.mean_absolute_error(y_test, pred_test)
-        mse = metrics.mean_squared_error(y_test, pred_test)
-        rmse =  np.sqrt(metrics.mean_squared_error(y_test, pred_test))
+        y_pred_test = self.model.predict(X_test)
+        mae = metrics.mean_absolute_error(y_test, y_pred_test)
+        mse = metrics.mean_squared_error(y_test, y_pred_test)
+        rmse =  np.sqrt(metrics.mean_squared_error(y_test, y_pred_test))
         oob_score = self.model.oob_score_ * 100
-        r2 = metrics.r2_score(y_test, pred_test)
+        r2 = metrics.r2_score(y_test, y_pred_test)
         print('\n\n\nMean Absolute Error (MAE):', mae)
         print('Mean Squared Error (MSE):', mse)
         print('Root Mean Squared Error (RMSE):', rmse)
@@ -266,7 +267,7 @@ class ModelBuilder():
 
         plt.figure(figsize=(5,5))
         plt.plot(list(range(0, int(y_test.max()))), ls='dashed', alpha=0.3)
-        plt.scatter(y_test, pred_test, color='black')
+        plt.scatter(y_test, y_pred_test, color='black')
         plt.title("Scatter plot of the Latin America model's performance predicting potential mature forest AGB")
         plt.xlabel('Test AGB (tCO2)')
         plt.ylabel('Predicted AGB (tCO2)')
@@ -285,7 +286,7 @@ class ModelBuilder():
         plt.title("Visualizing Important Features", pad=15, size=14)
         if save_figures:
             plt.savefig(f'features_importance_{saving_base_output_name}.png')
-        return mae, mse, rmse, oob_score, r2, feature_imp
+        return y_pred_test, mae, mse, rmse, oob_score, r2, feature_imp
 
 
     def inference(self, mask_band, tiles_folder_name, tiles_in_GCP,

@@ -439,7 +439,7 @@ class EEDatasetBuilder():
                                                     **task_config)
         task.start()
 
-    # TODO: Stratified sampling with Pedro's code 
+    # TODO: Add stratified sampling with Pedro's code 
     def samples_csv_export(self, shp_asset_path, name_gcp_bucket, folder_in_gcp_bucket, numPixels, scale):
         """
         Generates samples from the image and export them as CSV files to GCP bucket.
