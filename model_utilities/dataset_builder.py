@@ -416,7 +416,7 @@ class EEDatasetBuilder():
 
         return nb_features, list_features_assets
 
-    def export_samples_to_cloud_storage(self, samples, index, name_gcp_bucket, folder_in_gcp_bucket, numPixels, scale):
+    def export_samples_to_cloud_storage(self, samples, index, name_gcp_bucket, folder_in_gcp_bucket, scale):
         """
         Export table to GCP bucket
 
@@ -431,8 +431,8 @@ class EEDatasetBuilder():
         # Set configuration parameters for output image
         task_config = {
             'bucket': f'{name_gcp_bucket}',  # output GCP bucket
-            'description': f"training_set_MF_AGB_{numPixels}pixels_{scale}scale_{index}",
-            'fileNamePrefix': folder_in_gcp_bucket + '/' + f"samples_{numPixels}pixels_{scale}scale_{index}"
+            'description': f"training_set_{scale}scale_{index}",
+            'fileNamePrefix': folder_in_gcp_bucket + '/' + f"samples_{scale}scale_{index}"
         }
         # Export table to GCP bucket
         task = ee.batch.Export.table.toCloudStorage(samples,
@@ -518,7 +518,7 @@ class EEDatasetBuilder():
                 self.export_samples_to_cloud_storage(sample_current_feature, index=i,
                                              name_gcp_bucket=name_gcp_bucket,
                                              folder_in_gcp_bucket=folder_in_gcp_bucket,
-                                             numPixels=numPixels, scale=scale)
+                                             scale=scale)
 
     def export_tiles_to_cloud_storage(self, image, region, name_gcp_bucket, folder_in_gcp_bucket, index, scale, maxPixels):
         """
