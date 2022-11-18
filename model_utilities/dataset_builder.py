@@ -19,13 +19,15 @@ class EEDatasetBuilder():
         #Initialize connection to GEE
         ee.Initialize()
 
-    def filtered_response_layer_from_raster(self, response_raster, filter_dict):
+    def filtered_response_layer_from_raster(self, response_raster, filter_dict={}, ee_image=None, custom_response_raster_name=None):
         """
 
         Parameters
         ----------
         response_raster: string indicating response dataset (eg: biomass, deforestation risk) to use. Currently accepts Spawn_AGB_tCO2e, 
         GEDI_Biomass_1km_tCO2, Walker_AGB_500m_tCO2, Response_Variable_Brazil_Atlantic_Forest_0forest_1deforested.
+        If response_raster = 'custom', the user can choose their own response raster using an ee asset. They need to provide the 
+        ee Image (ee_image) and a name for the response raster: custom_response_raster_name. 
 
         filter_dict: dictionary of filters (names as keys) and parameters as the value. Parameters are themselves
         specified as key/value pairs in a dictionary. These are the filters that will be applied to create the mask for
@@ -66,6 +68,8 @@ class EEDatasetBuilder():
             response = response.rename(response_raster)
         elif response_raster == 'Response_Variable_Brazil_Atlantic_Forest_0forest_1deforested':
             response = ee.Image('users/prpiffer/Deforestation_Risk/Response_Variable_Atlantic_Forest_0forest_1deforested').rename(response_raster)
+        elif response_raster == 'custom':
+            response = ee_image.rename(custom_response_raster_name)
         elif response_raster == None: 
             response = ee.Image(1)
         else:
@@ -175,16 +179,18 @@ class EEDatasetBuilder():
             renamed_bands_names)
         return image_renamed
 
-    def spatial_covariates(self, covariates):
+    def spatial_covariates(self, covariates, ee_image=None, name_custom_ee_image=None):
         """
         Uses an appropriate earth engine asset to add spatial covariate bands to the image
 
         Parameters
         ----------
         covariates: list of strings, taken from ['ecoregion', 'terraclimate', 'soil', 'bioclim',
-        'terrain', 'brazil_roads', 'terrain', 'brazil_protected_areas', 'population_density',
-        'forest_age', 'urbanization', 'brazil_surrounding_forest', 'brazil_pasture',
-        'brazil_agriculture', 'south_america_rivers', 'urban_distance']
+        'terrain', 'brazil_roads', 'brazil_protected_areas', 'population_density',
+         'forest_age', 'urbanization', 'brazil_surrounding_forest', 'brazil_pasture',
+         'brazil_agriculture', 'south_america_rivers', 'urban_distance', 'custom_ee_image']
+         custom_ee_image: the user can choose their own predictor raster using an ee asset. They need to provide the ee image (ee_image) 
+         with a name name_custom_ee_image.
 
         -------
 
@@ -195,7 +201,8 @@ class EEDatasetBuilder():
             self.image = ee.Image(1)
         
         mask = self.image.mask()
-        for covariate in covariates:
+        for i in range(len(covariates)):
+            covariate = covariates[i]
             # MapBiomas land use cover maps: 
             # Select year 2010 as is it the start of our period
             MapBiomas_v7 = ee.Image('projects/mapbiomas-workspace/public/collection7/mapbiomas_collection70_integration_v2').select('classification_2010')
@@ -300,6 +307,9 @@ class EEDatasetBuilder():
                 # TODO not hard coded distances
                 distUrbanAcre = urbanMA.distance(100000).rename('urban_distance')
                 self.image = self.image.addBands(distUrbanAcre.updateMask(mask))
+            if covariate == 'custom_ee_image':
+                custom_ee_image = ee_image[i].rename(name_custom_ee_image[i])
+                self.image = self.image.addBands(custom_ee_image.updateMask(mask))
                 
             # Removing band "constant" created when response raster is empty
             bands_names = self.image.bandNames().getInfo()
