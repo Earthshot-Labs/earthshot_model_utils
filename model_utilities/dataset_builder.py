@@ -439,8 +439,9 @@ class EEDatasetBuilder():
                                                     **task_config)
         task.start()
 
-    # TODO: Add stratified sampling with Pedro's code 
-    def samples_csv_export(self, shp_asset_path, name_gcp_bucket, folder_in_gcp_bucket, numPixels, scale):
+    def samples_csv_export(self, shp_asset_path, name_gcp_bucket, folder_in_gcp_bucket, numPixels=None, scale=None, factor=None, seed=0, projection=None,
+                           tileScale=1, geometries=True, dropNulls=True, isStratifiedSampling=False, numPoints=None, classBand=None, classPoints=None,
+                          classValues=None):
         """
         Generates samples from the image and export them as CSV files to GCP bucket.
 
@@ -450,26 +451,66 @@ class EEDatasetBuilder():
         - name_gcp_bucket: (string) name of the output folder in Cloud Storage
         - folder_in_gcp_bucket: (string) name of the folder path in the GCP bucket
         - numPixels: (int) The approximate number of pixels to sample.
-        - scale: (int) Scale for the sampling
+        - scale: (int) A nominal scale in meters of the projection to sample in. Defaults to the scale of the first band of the input image.
+        - factor: (float) A subsampling factor, within (0, 1]. If specified, 'numPixels' must not be specified. Defaults to no subsampling.
+        - seed: (float) A nominal scale in meters of the projection to sample in. Defaults to the scale of the first band of the input image.
+        - projection: (Projection) The projection in which to sample. If unspecified, the projection of the input image's first band is used. 
+        If specified in addition to scale, rescaled to the specified scale.
+        - tileScale: (float) A scaling factor used to reduce aggregation tile size
+        - geometries: (boolean) If true, the results will include a geometry per sampled pixel. 
+        - dropNulls: (boolean) Skip pixels in which any band is masked.
+        - isStratifiedSampling: (bolean) Uses .stratifiedSample() instead of .sample()
+        - numPoints: (int) The default number of points to sample in each class. Can be overridden for specific classes using the 'classValues' 
+        and 'classPoints' properties.
+        - classBand: (string) The name of the band containing the classes to use for stratification. If unspecified, the first band of the input image is used.
+        - classPoints: (list) A list of the per-class maximum number of pixels to sample for each class in the classValues list.
+        - classValues: (list) A list of class values for which to override the numPoints parameter. Must be the same size as classPoints or null.
         -------
 
         """
         ###### Loading shapefile asset ######
         nb_features, list_features_assets = self.load_ee_asset_shapefile(shp_asset_path)
+        if isStratifiedSampling:
+                print(f'Stratified sampling: \nnumPoints: {numPoints}, \nclassBand: {classBand}, \nscale: {scale}, \ngeometries: {geometries}, \ndropNulls: {dropNulls}, \ntileScale: {tileScale}, \nclassPoints: {classPoints}, \nseed: {seed}, \nprojection:{projection}')
+        else:
+            print(f'Sampling: \nnumPixels: {numPixels}, \nscale: {scale}, \ngeometries: {geometries}, \ndropNulls: {dropNulls}, \ntileScale: {tileScale}, \nfactor: {factor}, \nprojection:{projection}')
+            
             
         # Looping through the grids
         for i in tqdm(range(nb_features)):
-            # Samples the pixels of an image, returning them as a FeatureCollection.
-            # Each feature will have 1 property per band in the input image.
-            # Note that the default behavior is to drop features that intersect masked pixels,
-            # which result in null-valued properties (see dropNulls argument).
-            sample_current_feature = self.image.clip(list_features_assets[i]['geometry']).sample(
-                numPixels=numPixels,
-                region=list_features_assets[i]['geometry'],
-                scale=scale,
-                geometries=True
-                # keeping the geometries so we can know where the data points are exactly and can display them on a map
-            )
+            if isStratifiedSampling:
+                # Samples the pixels of an image, returning them as a FeatureCollection. 
+                # Each feature will have 1 property per band in the input image. 
+                # Note that the default behavior is to drop features that intersect masked pixels, 
+                # which result in null-valued properties (see dropNulls argument).
+                sample_current_feature = self.image.clip(list_features_assets[i]['geometry']).stratifiedSample(
+                    numPoints=numPoints,
+                    classBand=classBand,
+                    region=list_features_assets[i]['geometry'],
+                    scale=scale,
+                    geometries=geometries,
+                    dropNulls=dropNulls,
+                    tileScale=tileScale,
+                    classPoints=classPoints,
+                    classValues=classValues,
+                    seed=seed,
+                    projection=projection
+                )
+            else:
+                # Samples the pixels of an image, returning them as a FeatureCollection.
+                # Each feature will have 1 property per band in the input image.
+                # Note that the default behavior is to drop features that intersect masked pixels,
+                # which result in null-valued properties (see dropNulls argument).
+                sample_current_feature = self.image.clip(list_features_assets[i]['geometry']).sample(
+                    numPixels=numPixels,
+                    region=list_features_assets[i]['geometry'],
+                    scale=scale,
+                    projection=projection,
+                    factor=factor,
+                    tileScale=tileScale,
+                    geometries=geometries,
+                    # keeping the geometries so we can know where the data points are exactly and can display them on a map
+                )
             size = sample_current_feature.size().getInfo()
 
             # Export csv one by one (if not empty) to avoid GEE queries limitations
