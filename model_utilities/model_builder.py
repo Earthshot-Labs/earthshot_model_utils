@@ -139,7 +139,9 @@ class ModelBuilder():
 
 
     def create_dataset(self, response_variable, feature_names, gcp_bucket, gcp_folder_name, samples_folder_name, 
-                       name_csv_samples_merged_file, use_test_val_buffered_sets, samples_csv_local=False):
+                       name_csv_samples_merged_file, use_test_val_buffered_sets, samples_csv_local=False,
+                       name_test_buffer_column='test_set_10km_buffer', name_val_buffer_column='val_set_10km_buffer', 
+                       name_test_no_buffer_column='test_set_no_buffer', name_val_no_buffer_column='val_set_no_buffer'):
         """
             Create the dataset with split train, test and val sets from a csv files that contains the exported samples.
 
@@ -165,12 +167,13 @@ class ModelBuilder():
             url_csv_merged_file_bucket = f'gs://{self.gcp_bucket}/{self.gcp_folder_name}/{samples_folder_name}/{name_csv_samples_merged_file}'
         print(f'Reading sample csv file: {url_csv_merged_file_bucket}...')
         df = pd.read_csv(url_csv_merged_file_bucket)
+        print(df.head(2))
         print(f"We have {len(df)} samples")
 
         if use_test_val_buffered_sets:
-            df_train = df[(df['test_set_10km_buffer'] == 0) & (df['val_set_10km_buffer'] == 0)]
-            df_test = df[df['test_set_no_buffer'] == 1]
-            df_val = df[df['val_set_no_buffer'] == 1]
+            df_train = df[(df[name_test_buffer_column] == 0) & (df[name_val_buffer_column] == 0)]
+            df_test = df[df[name_test_no_buffer_column] == 1]
+            df_val = df[df[name_val_no_buffer_column] == 1]
 
             # get the features and response_variables into separate variables
             self.X_train = df_train[self.feature_names]
