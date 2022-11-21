@@ -139,7 +139,7 @@ class ModelBuilder():
 
 
     def create_dataset(self, response_variable, feature_names, gcp_bucket, gcp_folder_name, samples_folder_name, 
-                       name_csv_samples_merged_file, use_test_val_buffered_sets):
+                       name_csv_samples_merged_file, use_test_val_buffered_sets, samples_csv_local=False):
         """
             Create the dataset with split train, test and val sets from a csv files that contains the exported samples.
 
@@ -159,7 +159,10 @@ class ModelBuilder():
         self.response_variable = response_variable
         self.gcp_bucket = gcp_bucket
         self.gcp_folder_name = gcp_folder_name
-        url_csv_merged_file_bucket = f'gs://{self.gcp_bucket}/{self.gcp_folder_name}/{samples_folder_name}/{name_csv_samples_merged_file}'
+        if samples_csv_local:
+            url_csv_merged_file_bucket = name_csv_samples_merged_file
+        else:
+            url_csv_merged_file_bucket = f'gs://{self.gcp_bucket}/{self.gcp_folder_name}/{samples_folder_name}/{name_csv_samples_merged_file}'
         print(f'Reading sample csv file: {url_csv_merged_file_bucket}...')
         df = pd.read_csv(url_csv_merged_file_bucket)
         print(f"We have {len(df)} samples")
@@ -268,9 +271,9 @@ class ModelBuilder():
         plt.figure(figsize=(5,5))
         plt.plot(list(range(0, int(y_test.max()))), ls='dashed', alpha=0.3)
         plt.scatter(y_test, y_pred_test, color='black')
-        plt.title("Scatter plot of the Latin America model's performance predicting potential mature forest AGB")
-        plt.xlabel('Test AGB (tCO2)')
-        plt.ylabel('Predicted AGB (tCO2)')
+        plt.title("Scatter plot test vs predicted values")
+        plt.xlabel('Test')
+        plt.ylabel('Predicted')
         if save_figures:
             plt.savefig(f'scatter_plot_{saving_base_output_name}.png')
 
