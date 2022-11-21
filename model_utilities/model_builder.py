@@ -167,7 +167,6 @@ class ModelBuilder():
             url_csv_merged_file_bucket = f'gs://{self.gcp_bucket}/{self.gcp_folder_name}/{samples_folder_name}/{name_csv_samples_merged_file}'
         print(f'Reading sample csv file: {url_csv_merged_file_bucket}...')
         df = pd.read_csv(url_csv_merged_file_bucket)
-        print(df.head(2))
         print(f"We have {len(df)} samples")
 
         if use_test_val_buffered_sets:
