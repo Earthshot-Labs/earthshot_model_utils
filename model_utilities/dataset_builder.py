@@ -50,6 +50,7 @@ class EEDatasetBuilder():
         """
 
         # Create the biomass layer
+        self.response_variable = response_raster
         if response_raster == 'Spawn_AGB_tCO2e':
             # Global Aboveground and Belowground Biomass Carbon Density Map
             # Get Above Ground Biomass band and convert it to tCO2e
@@ -70,6 +71,7 @@ class EEDatasetBuilder():
             response = ee.Image('users/prpiffer/Deforestation_Risk/Response_Variable_Atlantic_Forest_0forest_1deforested').rename(response_raster)
         elif response_raster == 'custom':
             response = ee_image.rename(custom_response_raster_name)
+            self.response_variable = custom_response_raster_name
         elif response_raster == None: 
             response = ee.Image(1)
         else:
@@ -200,7 +202,9 @@ class EEDatasetBuilder():
         if self.image is None:
             self.image = ee.Image(1)
         
-        mask = self.image.mask()
+        mask = self.image.select(self.response_variable).mask()
+        if type(covariates) != list:
+            print('Error! covariates should be lists')
         for i in range(len(covariates)):
             covariate = covariates[i]
             # MapBiomas land use cover maps: 
@@ -310,8 +314,11 @@ class EEDatasetBuilder():
                 distUrbanAcre = urbanMA.distance(100000).rename('urban_distance')
                 self.image = self.image.addBands(distUrbanAcre.updateMask(mask))
             if covariate == 'custom_ee_image':
-                custom_ee_image = ee_image[i].rename(name_custom_ee_image[i])
-                self.image = self.image.addBands(custom_ee_image.updateMask(mask))
+                if type(ee_image) != list:
+                    print('Error! ee_image, name_custom_ee_image, covariates should be lists')
+                else:
+                    custom_ee_image = ee_image[i].rename(name_custom_ee_image[i])
+                    self.image = self.image.addBands(custom_ee_image.updateMask(mask))
                 
             # Removing band "constant" created when response raster is empty
             bands_names = self.image.bandNames().getInfo()
