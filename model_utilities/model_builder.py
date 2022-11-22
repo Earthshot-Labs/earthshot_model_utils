@@ -21,6 +21,10 @@ import matplotlib.pyplot as plt
 from utils import upload_to_bucket, glob_blob_in_GCP
 from sklearn.model_selection import GridSearchCV
 import argparse
+import tensorflow as tf
+from tensorflow import keras
+from tensorflow.keras import layers
+from xgboost import XGBRegressor
 warnings.filterwarnings("ignore", "Your application has authenticated using end user credentials")
 
 # Tell GDAL to throw Python exceptions, and register all drivers
@@ -60,13 +64,14 @@ class ModelBuilder():
         self.gcp_bucket = None
         self.gcp_folder_name = None
         
-    def initialize_model(self, nb_trees, max_depth, random_state=42, max_features=1.0, n_cores=-1, 
-                         oob_score=True, bootstrap=True, criterion='squared_error'):
+    def initialize_regression_model(self, model_type='RandomForestRegressor', nb_trees=100, max_depth=4, random_state=42, max_features=1.0, n_cores=-1, 
+                         oob_score=True, bootstrap=True, criterion='squared_error', optimizer='adam', loss='mean_absolute_error', model=None):
         """
-        Initialize the sklearn Randon Forest spatial model.
+        Initialize the spatial model.
         
         Parameters
         ----------
+        - model_type: (string) Define the type of the model initialized. eg: RandomForestRegressor, KerasLogisticRegression, XGBRegressor, custom (user passes their own model)
         - nb_trees: (int) number of trees for the Random Forest model
         - max_depth: (int) The maximum depth of the tree. If None, then nodes are expanded until all leaves 
         are pure or until all leaves contain less than min_samples_split samples.
@@ -77,15 +82,31 @@ class ModelBuilder():
         - oob_score: Whether to use out-of-bag samples to estimate the generalization score. Only available if bootstrap=True
         - bootstrap: Whether bootstrap samples are used when building trees. If False, the whole dataset is used to build each tree.
         - criterion: (string) {“squared_error”, “absolute_error”, “poisson”} The function to measure the quality of a split. 
+        - optimizer: (string or tf optimizer) the optimizer to use in Keras neural network model
+        - loss: (string) loss to use in Keras neural network model
         ----------
         
         """
-        self.model = RandomForestRegressor(n_estimators=nb_trees, oob_score=oob_score, verbose=1, 
+        self.model_type = model_type
+        if self.model_type=='RandomForestRegressor':
+            self.model = RandomForestRegressor(n_estimators=nb_trees, oob_score=oob_score, verbose=1, 
                                              n_jobs=n_cores, max_depth=max_depth, max_features=max_features,
                                              bootstrap=bootstrap, random_state=random_state, criterion=criterion)
+        elif self.model_type=='XGBRegressor':
+            self.model = XGBRegressor(n_estimators=nb_trees, max_depth=max_depths, verbose=1,)
+        elif self.model_type=='KerasLogisticRegression':
+            training = np.array(self.X_train)
+            normalizer = layers.Normalization(input_shape=[len(self.feature_names),], axis=None)
+            normalizer.adapt(training)
+            self.model = keras.Sequential([normalizer,
+                                          layers.Dense(1 , activation="sigmoid") 
+                                      ])
+            self.model.compile(optimizer=optimizer, loss=loss)
+        elif self.model_type=='custom':
+            self.model = model
         
         
-    def run_rf_inference_on_tile(self, tile, tile_as_array):
+    def run_inference_on_tile(self, tile, tile_as_array):
         """
         Run Random Forest inference on all pixels of an array tile.
 
@@ -138,10 +159,11 @@ class ModelBuilder():
         return class_prediction
 
 
-    def create_dataset(self, response_variable, feature_names, gcp_bucket, gcp_folder_name, samples_folder_name, 
-                       name_csv_samples_merged_file, use_test_val_buffered_sets, samples_csv_local=False,
+    def train_val_test_split(self, response_variable, feature_names, gcp_bucket, gcp_folder_name, samples_folder_name, 
+                       name_csv_samples_merged_file, use_test_val_buffered_sets, test_size=0.20, samples_csv_local=False,
                        name_test_buffer_column='test_set_10km_buffer', name_val_buffer_column='val_set_10km_buffer', 
-                       name_test_no_buffer_column='test_set_no_buffer', name_val_no_buffer_column='val_set_no_buffer'):
+                       name_test_no_buffer_column='test_set_no_buffer', name_val_no_buffer_column='val_set_no_buffer'
+                       ):
         """
             Create the dataset with split train, test and val sets from a csv files that contains the exported samples.
 
@@ -152,8 +174,13 @@ class ModelBuilder():
             - gcp_bucket: (string) name of GCP bucket
             - gcp_gcp_folder_namebucket: (string) name of folder in GCP bucker
             - samples_folder_name: (string) name of samples folder
+            - test_size: (float) percentage of test samples to put aside when create the train/test split
             - name_csv_samples_merged_file: (string) name of the csv file with all exported samples from GEE
             - use_test_val_buffered_sets: (boolean) If True, uses the buffered test and val sets exported with dataset_builder
+            - name_test_buffer_column: (string) name of the test buffer column 
+            - name_val_buffer_column: (string) name of the validation buffer column 
+            - name_test_no_buffer_column: (string) name of the test no buffer column 
+            - name_val_no_buffer_column: (string) name of the validation buffer column 
             -------
 
             """
@@ -184,7 +211,7 @@ class ModelBuilder():
         else:
             # Split train/test sets
             self.X_train, self.X_test, self.y_train, self.y_test = train_test_split(df[self.feature_names], df[self.response_variable], 
-                                                                                    test_size=0.20, random_state=42)
+                                                                                    test_size=test_size, random_state=42)
             self.X_val = []
             self.y_val = []
 
@@ -201,7 +228,7 @@ class ModelBuilder():
 
         Parameters
         ----------
-        - random_state:
+        - random_state: (int) seed for randomizing sets
         - n_estimators: (list) list of number of trees to test 
         - max_features: (list) list of max_features to test 
         - max_depth: (list) list of max_depth to test 
@@ -226,17 +253,36 @@ class ModelBuilder():
         return GSCV.best_params_
         
 
-    def train(self):
+    def train(self, epochs=100, callbacks=[]):
         """
-            Run Random Forest training
+            Run training on model initialized previously
         -------
 
+        Parameters
+        ----------
+        - epochs: (int) number of epochs to run
+        - callbacks: (list) list of Keras callbacks
+        -------
         """
-        self.model = self.model.fit(self.X_train, self.y_train.values.ravel())
+        if self.model_type=='RandomForestRegressor':
+            self.model = self.model.fit(self.X_train, self.y_train.values.ravel())
+        elif self.model_type=='XGBRegressor':
+            self.model = self.model.fit(self.X_train, self.y_train)
+        elif self.model_type=='KerasLogisticRegression':
+            if len(self.X_val) == 0:
+                # If we don't have a validation set, we use the test set 
+                self.model.fit(self.X_train, self.y_train.values.ravel(), 
+                               epochs=epochs, validation_data=(self.X_test, self.y_test),
+                               callbacks=callbacks)
+            else:
+                self.model.fit(self.X_train, self.y_train.values.ravel(), epochs=epochs, 
+                               validation_data=(self.X_val, self.y_val),
+                               callbacks=callbacks)
+
 
     def evaluate(self, X_test, y_test, save_figures=True, saving_base_output_name=''):
         """
-            Run Random Forest evaluation
+            Run model evaluation
 
         Parameters
         ----------
@@ -261,14 +307,19 @@ class ModelBuilder():
         mae = metrics.mean_absolute_error(y_test, y_pred_test)
         mse = metrics.mean_squared_error(y_test, y_pred_test)
         rmse =  np.sqrt(metrics.mean_squared_error(y_test, y_pred_test))
-        oob_score = self.model.oob_score_ * 100
+        
         r2 = metrics.r2_score(y_test, y_pred_test)
         print('\n\n\nMean Absolute Error (MAE):', mae)
         print('Mean Squared Error (MSE):', mse)
         print('Root Mean Squared Error (RMSE):', rmse)
         # Check out the "Out-of-Bag" (OOB) prediction score:
-        print('OOB prediction of accuracy is: {oob}%\n'.format(oob=oob_score))
         print("R2:", r2)
+        if self.model_type=='RandomForestRegressor':
+            oob_score = self.model.oob_score_ * 100
+            print('OOB prediction of accuracy is: {oob}%\n'.format(oob=oob_score))
+        else:
+            oob_score = 0 
+            
 
         plt.figure(figsize=(5,5))
         plt.plot(list(range(0, int(y_test.max()))), ls='dashed', alpha=0.3)
@@ -279,25 +330,27 @@ class ModelBuilder():
         if save_figures:
             plt.savefig(f'scatter_plot_{saving_base_output_name}.png')
 
-        feature_imp = pd.DataFrame({'feature_name': self.feature_names,
-                                    'importance': self.model.feature_importances_}).sort_values('importance', ascending=False)
-        if save_figures:
-            feature_imp.to_csv(f'features_importances_{saving_base_output_name}.csv')
-
-        fig, ax = plt.subplots(figsize=(5,5))
-        sns.barplot(x=feature_imp.importance, y=feature_imp.feature_name, ax=ax)
-        plt.xlabel('Feature Importance Score')
-        plt.ylabel('Features')
-        plt.title("Visualizing Important Features", pad=15, size=14)
-        if save_figures:
-            plt.savefig(f'features_importance_{saving_base_output_name}.png')
+        if self.model_type=='RandomForestRegressor':
+            feature_imp = pd.DataFrame({'feature_name': self.feature_names,
+                                        'importance': self.model.feature_importances_}).sort_values('importance', ascending=False)
+            if save_figures:
+                feature_imp.to_csv(f'features_importances_{saving_base_output_name}.csv')
+            fig, ax = plt.subplots(figsize=(5,5))
+            sns.barplot(x=feature_imp.importance, y=feature_imp.feature_name, ax=ax)
+            plt.xlabel('Feature Importance Score')
+            plt.ylabel('Features')
+            plt.title("Visualizing Important Features", pad=15, size=14)
+            if save_figures:
+                plt.savefig(f'features_importance_{saving_base_output_name}.png')
+        else: 
+            feature_imp = 0 
         return y_pred_test, mae, mse, rmse, oob_score, r2, feature_imp
 
 
     def inference(self, mask_band, tiles_folder_name, tiles_in_GCP,
                  RF_output_folder_temp='RF_outputs_temp', path_to_tiles_local=''):
         """
-            Run inference on tiles using trained sklearn rf model and merge the results.
+            Run inference on tiles using trained model and merge the results.
 
         Parameters
         ----------
@@ -351,7 +404,7 @@ class ModelBuilder():
             print(tile_as_array.shape)
 
             # Predict for each pixel
-            class_prediction = self.run_rf_inference_on_tile(tile=tile, tile_as_array=tile_as_array)
+            class_prediction = self.run_inference_on_tile(tile=tile, tile_as_array=tile_as_array)
 
             # Generate mask from first band of our predictors
             mask = np.copy(tile[:, :, self.feature_names.index(mask_band)]).astype(
@@ -391,7 +444,6 @@ class ModelBuilder():
                 print(f"Image uploaded to GCP bucket: {blob_path}")
                 # Delete image locally
                 os.remove(classification_image)
-
         print(f"Done: {i} tiles predicted")
 
         ################## Merge all predictions raster tiles ##################
@@ -407,20 +459,9 @@ class ModelBuilder():
 
         paths_pred_rasters.sort()
         print(f'There are {len(paths_pred_rasters)} prediction rasters to be merged.')
-
-        # Loop through the predictions raster tiles
-        for i in tqdm(range(len(paths_pred_rasters))):
-            print(paths_pred_rasters[i])
-            # if it's the first tile, we merge the two first tiles together
-            if i == 0:
-                print('python3', 'gdal_merge.py', "-ot", "Float32", f"-o", f"{output_merged_tif.replace('.tif', f'_{i}.tif')}", f"{paths_pred_rasters[i]}", f"{paths_pred_rasters[i+1]}", "-a_nodata", "0", "-n", "0", "-co", "COMPRESS=DEFLATE")
-                subprocess.run(['python3', 'gdal_merge.py', "-ot", "Float32", f"-o", f"{output_merged_tif.replace('.tif', f'_{i}.tif')}", f"{paths_pred_rasters[i]}", f"{paths_pred_rasters[i+1]}", "-a_nodata", "0", "-n", "0", "-co", "COMPRESS=DEFLATE"])
-            # then we merge the previously merged output with the next tile
-            else:
-                print('\npython3', 'gdal_merge.py', "-ot", "Float32", f"-o", f"{output_merged_tif.replace('.tif', f'_{i}.tif')}", f"{output_merged_tif.replace('.tif', f'_{i-1}.tif')}", f"{paths_pred_rasters[i]}", "-a_nodata", "0", "-n", "0", "-co", "COMPRESS=DEFLATE")
-            subprocess.run(['python3', 'gdal_merge.py', "-ot", "Float32", f"-o", f"{output_merged_tif.replace('.tif', f'_{i}.tif')}", f"{output_merged_tif.replace('.tif', f'_{i-1}.tif')}", f"{paths_pred_rasters[i]}", "-a_nodata", "0", "-n", "0", "-co", "COMPRESS=DEFLATE"])
-            # We remove the previous merged output -- no need to keep it
-            os.remove(output_merged_tif.replace('.tif', f'_{i-1}.tif'))
+        command_list = ['python3', 'gdal_merge.py', "-ot", "Float32","-a_nodata", "0", "-n", "0", "-co", "COMPRESS=DEFLATE",f"-o", f"{output_merged_tif}"]
+        command_list.extend(paths_pred_rasters)
+        subprocess.run(command_list)        
 
         print('Done. Upload final merge tif to GCP bucket')
         # upload final merge tif to GCP bucket
