@@ -206,6 +206,8 @@ class EEDatasetBuilder():
             # MapBiomas land use cover maps: 
             # Select year 2010 as is it the start of our period
             MapBiomas_v7 = ee.Image('projects/mapbiomas-workspace/public/collection7/mapbiomas_collection70_integration_v2').select('classification_2010')
+            # TODO: create a dictionary/catalogue for the co-variantes? Where do we store the assets? 
+            # TODO: refactoring
             if covariate == 'ecoregion':
                 ecoregion_dataset = ee.FeatureCollection("RESOLVE/ECOREGIONS/2017")
                 # Use the BIOME_NUM band, convert from double to int to potentially use with stratified sampling

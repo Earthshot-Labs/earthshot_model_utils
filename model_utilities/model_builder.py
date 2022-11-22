@@ -30,7 +30,8 @@ warnings.filterwarnings("ignore", "Your application has authenticated using end 
 # Tell GDAL to throw Python exceptions, and register all drivers
 gdal.UseExceptions()
 gdal.AllRegister()
-
+ROOT_DIR = os.path.dirname(os.path.abspath('.'))
+print(ROOT_DIR)
 
 
 class ModelBuilder():
@@ -437,8 +438,8 @@ class ModelBuilder():
             i = i + 1
             if tiles_in_GCP:
                 # Upload to bucket
-                blob_path = upload_to_bucket(gcp_bucket=gcp_bucket,
-                                             folder_name=gcp_folder_name + '/' + RF_output_folder_name,
+                blob_path = upload_to_bucket(gcp_bucket=self.gcp_bucket,
+                                             folder_name=self.gcp_folder_name + '/' + RF_output_folder_name,
                                              file_name=classification_image.split('/')[-1],
                                              file_local_path=classification_image)
                 print(f"Image uploaded to GCP bucket: {blob_path}")
@@ -451,25 +452,30 @@ class ModelBuilder():
 
         # Find names of the predictions raster tiles in the GCP bucket and store them in list paths_pred_rasters
         if tiles_in_GCP:
-            paths_pred_rasters = glob_blob_in_GCP(gcp_bucket=gcp_bucket,
-                                                  gcp_folder_name=gcp_folder_name + '/' + RF_output_folder_name,
+            paths_pred_rasters = glob_blob_in_GCP(gcp_bucket=self.gcp_bucket,
+                                                  gcp_folder_name=self.gcp_folder_name + '/' + RF_output_folder_name,
                                                   extension='.tif')
         else:
             paths_pred_rasters = glob.glob(RF_output_folder_temp + '/*.tif')
 
         paths_pred_rasters.sort()
         print(f'There are {len(paths_pred_rasters)} prediction rasters to be merged.')
-        command_list = ['python3', 'gdal_merge.py', "-ot", "Float32","-a_nodata", "0", "-n", "0", "-co", "COMPRESS=DEFLATE",f"-o", f"{output_merged_tif}"]
+
+        import sys
+ 
+        # setting path
+        print(f'ROOT_DIR: {ROOT_DIR}')
+        sys.path.append(ROOT_DIR)
+        command_list = ['python3', f'{ROOT_DIR}/gdal_merge.py', "-ot", "Float32","-a_nodata", "0", "-n", "0", "-co", "COMPRESS=DEFLATE",f"-o", f"{output_merged_tif}"]
         command_list.extend(paths_pred_rasters)
         subprocess.run(command_list)        
 
         print('Done. Upload final merge tif to GCP bucket')
         # upload final merge tif to GCP bucket
-        local_path_final_merged_file = output_merged_tif.replace('.tif', f'_{i}.tif')
-        blob_path = upload_to_bucket(gcp_bucket=gcp_bucket,
-                                     folder_name=gcp_folder_name + '/' + RF_output_folder_name,
-                                     file_name=local_path_final_merged_file.split('/')[-1],
-                                     file_local_path=local_path_final_merged_file)
+        blob_path = upload_to_bucket(gcp_bucket=self.gcp_bucket,
+                                     folder_name=self.gcp_folder_name + '/' + RF_output_folder_temp,
+                                     file_name=output_merged_tif.split('/')[-1],
+                                     file_local_path=output_merged_tif)
 
         print(f'Done! {i} prediction rasters were merged to {blob_path}')
 
