@@ -279,6 +279,9 @@ class ModelBuilder():
                 self.model.fit(self.X_train, self.y_train.values.ravel(), epochs=epochs, 
                                validation_data=(self.X_val, self.y_val),
                                callbacks=callbacks)
+        elif self.model_type=='custom':
+            # TODO: is that the case usually? 
+            self.model = self.model.fit(self.X_train, self.y_train.values)
 
 
     def evaluate(self, X_test, y_test, save_figures=True, saving_base_output_name=''):
