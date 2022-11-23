@@ -255,7 +255,7 @@ class EEDatasetBuilder():
                 distRoads = roadsBrazil.distance(500000).rename('brazil_roads')
                 self.image = self.image.addBands(distRoads.updateMask(mask))
             if covariate == 'south_america_rivers':
-                riversSouthAmerica = ee.FeatureCollection("users/prpiffer/Rivers_South_America"); # TODO not found
+                riversSouthAmerica = ee.FeatureCollection("users/prpiffer/Rivers_South_America")
                 # TODO not hard coded distances
                 distRivers = riversSouthAmerica.distance(10000).rename('south_america_rivers')
                 self.image = self.image.addBands(distRivers.updateMask(mask))

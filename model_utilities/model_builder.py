@@ -249,7 +249,10 @@ class ModelBuilder():
                 'criterion' : criterion
             }
         GSCV = GridSearchCV(estimator=random_forest_tuning, param_grid=param_grid, cv=5, verbose=1)
-        GSCV.fit(self.X_val, self.y_val.values.ravel())
+        if len(self.X_val) == 0:
+            GSCV.fit(self.X_val, self.y_val.values.ravel())
+        else:
+            GSCV.fit(self.X_test, self.y_test.values.ravel())
         print(GSCV.best_params_)
         return GSCV.best_params_
         
