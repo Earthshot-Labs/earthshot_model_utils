@@ -65,7 +65,7 @@ class ModelBuilder():
         self.gcp_bucket = None
         self.gcp_folder_name = None
         
-    def initialize_regression_model(self, model_type='RandomForestRegressor', nb_trees=100, max_depth=4, random_state=42, max_features=1.0, n_cores=-1, 
+    def initialize_model(self, model_type='RandomForestRegressor', nb_trees=100, max_depth=4, random_state=42, max_features=1.0, n_cores=-1, 
                          oob_score=True, bootstrap=True, criterion='squared_error', optimizer='adam', loss='mean_absolute_error', model=None):
         """
         Initialize the spatial model.
@@ -250,9 +250,9 @@ class ModelBuilder():
             }
         GSCV = GridSearchCV(estimator=random_forest_tuning, param_grid=param_grid, cv=5, verbose=1)
         if len(self.X_val) == 0:
-            GSCV.fit(self.X_val, self.y_val.values.ravel())
-        else:
             GSCV.fit(self.X_test, self.y_test.values.ravel())
+        else:
+            GSCV.fit(self.X_val, self.y_val.values.ravel())
         print(GSCV.best_params_)
         return GSCV.best_params_
         
