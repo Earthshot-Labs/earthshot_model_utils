@@ -1,6 +1,3 @@
-# Usage:
-# python3 rf_training_and_inference.py --gcp_bucket 'eartshot-science-team' --gcp_folder_name 'deforestation_risk' --samples_folder_name 'Brazil_samples_csv_scale30_2000numPixels' --tiles_folder_name 'Brazil_Deforestation_Risk_inference_2degrees_grid_scale30_with_spawn_as_base_raster' --path_to_tiles_local '/Users/margauxmforstyhe/Desktop/Brazil_Deforestation_Risk_inference_2degrees_grid_scale30_with_spawn_as_base_raster' --csv_samples_file 'Brazil_samples_csv_scale30_2000numPixels_val_test_set_10km_buffer.csv' --rf_trees 100 --max_depth 2 --run_inference --use_test_val_buffered_sets --feature_names 'aspect' 'brazil_agriculture' 'brazil_pasture' 'brazil_protected_areas' 'brazil_roads' 'brazil_surrounding_forest' 'elevation' 'forest_age' 'hillshade' 'population_density' 'slope' 'south_america_rivers' --response_variable 'Response_Variable_Brazil_Atlantic_Forest_0forest_1deforested'
-
 ####### Imports ######
 import pandas as pd
 from osgeo import gdal, ogr, gdal_array
@@ -18,13 +15,14 @@ import shutil
 import glob
 import seaborn as sns
 import matplotlib.pyplot as plt
-from utils import upload_to_bucket, glob_blob_in_GCP
 from sklearn.model_selection import GridSearchCV
 import argparse
-import tensorflow as tf
-from tensorflow import keras
-from tensorflow.keras import layers
+# import tensorflow as tf
+# from tensorflow import keras
+# from tensorflow.keras import layers
 from xgboost import XGBRegressor
+from sklearn.metrics import recall_score, roc_auc_score, f1_score
+from sklearn.metrics import accuracy_score, roc_auc_score, classification_report, confusion_matrix
 warnings.filterwarnings("ignore", "Your application has authenticated using end user credentials")
 
 # Tell GDAL to throw Python exceptions, and register all drivers
@@ -33,6 +31,58 @@ gdal.AllRegister()
 ROOT_DIR = os.path.dirname(os.path.abspath('.'))
 print(ROOT_DIR)
 
+
+####### Functions ######
+def upload_to_bucket(gcp_bucket, folder_name, file_name, file_local_path):
+    """
+    Upload a file to a GCP bucket
+
+    Parameters
+    ----------
+    - gcp_bucket: (string) name of the GCP bucket
+    - folder_name: (string) name of the folder in the GCP bucket
+    - file_name: (string) name of the file that will be uploaded to GCP
+    - file_local_path: (string) local path of the file
+    -------
+    """
+    client = storage.Client()
+    storage.blob._DEFAULT_CHUNKSIZE = 5 * 1024 * 1024 # https://github.com/GoogleCloudPlatform/python-docs-samples/issues/2488#issuecomment-1170362655
+    bucket = client.bucket(gcp_bucket)
+    blob_path = f"{folder_name}/{file_name}"
+    print(f"\nUpload to bucket: {blob_path} from {file_local_path}")
+    blob = bucket.blob(blob_path)
+    if os.path.exists(file_local_path):
+        blob.upload_from_filename(file_local_path)
+    else:
+        print(f'ERROR in upload_to_bucket: file {file_local_path} does not exist.')
+    return blob_path
+
+
+
+def glob_blob_in_GCP(gcp_bucket, gcp_folder_name, extension='.tif'):
+    """
+    Finds all the pathnames in GCP bucket folder matching the extension provided.
+
+    Parameters
+    ----------
+    - gcp_bucket: (string) name of the GCP bucket
+    - gcp_folder_name: (string) name of the folder in the GCP bucket
+    - extension: (string) extension of the files to find the pathnames. default='.tif'
+
+    -------
+    Return
+    ----------
+    - list_paths: (list of strings) of the matching GCP pathnames
+    -------
+    """
+    client = storage.Client()
+    list_paths = []
+    for blob in client.list_blobs(gcp_bucket, prefix=f'{gcp_folder_name}'):
+        file = str(blob).split('/')[-1].split(',')[0]
+        if extension in file:
+            # see https://gis.stackexchange.com/questions/428298/open-raster-file-with-gdal-on-google-cloud-storage-bucket-returns-none
+            list_paths.append(f'/vsigs/{gcp_bucket}/{gcp_folder_name}/{file}')
+    return list_paths
 
 class ModelBuilder():
 
@@ -66,13 +116,15 @@ class ModelBuilder():
         self.gcp_folder_name = None
         
     def initialize_model(self, model_type='RandomForestRegressor', nb_trees=100, max_depth=4, random_state=42, max_features=1.0, n_cores=-1, 
-                         oob_score=True, bootstrap=True, criterion='squared_error', optimizer='adam', loss='mean_absolute_error', model=None):
+                         oob_score=True, bootstrap=True, criterion='squared_error', optimizer='adam', loss='mean_absolute_error', 
+                         min_samples_split=2, min_samples_leaf=1, max_leaf_nodes=None, min_impurity_decrease=0.0, verbose=1, warm_start=False,
+                         class_weight=None, ccp_alpha=0.0, max_samples=None, model=None):
         """
         Initialize the spatial model.
         
         Parameters
         ----------
-        - model_type: (string) Define the type of the model initialized. eg: RandomForestRegressor, KerasLogisticRegression, XGBRegressor, custom (user passes their own model)
+        - model_type: (string) Define the type of the model initialized. eg: RandomForestRegressor, RandomForestClassifier, XGBRegressor, custom (user passes their own model)
         - nb_trees: (int) number of trees for the Random Forest model
         - max_depth: (int) The maximum depth of the tree. If None, then nodes are expanded until all leaves 
         are pure or until all leaves contain less than min_samples_split samples.
@@ -90,19 +142,30 @@ class ModelBuilder():
         """
         self.model_type = model_type
         if self.model_type=='RandomForestRegressor':
-            self.model = RandomForestRegressor(n_estimators=nb_trees, oob_score=oob_score, verbose=1, 
-                                             n_jobs=n_cores, max_depth=max_depth, max_features=max_features,
-                                             bootstrap=bootstrap, random_state=random_state, criterion=criterion)
+            self.model = RandomForestRegressor(n_estimators=nb_trees, oob_score=oob_score, 
+                                               n_jobs=n_cores, max_depth=max_depth, max_features=max_features,
+                                               bootstrap=bootstrap, random_state=random_state, criterion=criterion,
+                                               verbose=verbose)
+        if self.model_type=='RandomForestClassifier':
+            self.model = RandomForestClassifier(n_estimators=nb_trees, criterion=criterion, max_depth=max_depth, 
+                                             min_samples_split=min_samples_split, min_samples_leaf=min_samples_leaf, 
+                                             min_weight_fraction_leaf=min_impurity_decrease, max_features=max_features, 
+                                             max_leaf_nodes=max_leaf_nodes, min_impurity_decrease=0.0, 
+                                             bootstrap=bootstrap, oob_score=oob_score, 
+                                             n_jobs=n_cores, 
+                                             random_state=random_state, verbose=verbose, 
+                                             warm_start=warm_start, class_weight=class_weight, ccp_alpha=ccp_alpha, max_samples=max_samples)
         elif self.model_type=='XGBRegressor':
             self.model = XGBRegressor(n_estimators=nb_trees, max_depth=max_depths, verbose=1,)
-        elif self.model_type=='KerasLogisticRegression':
-            training = np.array(self.X_train)
-            normalizer = layers.Normalization(input_shape=[len(self.feature_names),], axis=None)
-            normalizer.adapt(training)
-            self.model = keras.Sequential([normalizer,
-                                          layers.Dense(1 , activation="sigmoid") 
-                                      ])
-            self.model.compile(optimizer=optimizer, loss=loss)
+        # Commenting this for now as some people are having difficulties installing TF
+        # elif self.model_type=='KerasLogisticRegression':
+        #     training = np.array(self.X_train)
+        #     normalizer = layers.Normalization(input_shape=[len(self.feature_names),], axis=None)
+        #     normalizer.adapt(training)
+        #     self.model = keras.Sequential([normalizer,
+        #                                   layers.Dense(1 , activation="sigmoid") 
+        #                               ])
+        #     self.model.compile(optimizer=optimizer, loss=loss)
         elif self.model_type=='custom':
             self.model = model
         
@@ -125,20 +188,28 @@ class ModelBuilder():
         # first prediction will be tried on the entire image
         # if not enough RAM, the dataset will be sliced
         try:
-            class_prediction = self.model.predict(tile_as_array)
+            if self.model_type=='RandomForestClassifier':
+                class_prediction = self.model.predict_proba(tile_as_array)[:, 1]
+            else:
+                class_prediction = self.model.predict(tile_as_array)
         except MemoryError:
             slices = int(round(len(tile_as_array) / 2))
             test = True
             while test == True:
                 try:
                     class_preds = list()
-
-                    temp = self.model.predict(tile_as_array[0:slices + 1, :])
+                    if self.model_type=='RandomForestClassifier':
+                        temp = self.model.predict_proba(tile_as_array[0:slices + 1, :])[:, 1]
+                    else:
+                        temp = self.model.predict(tile_as_array[0:slices + 1, :])
                     class_preds.append(temp)
 
                     for i in range(slices, len(tile_as_array), slices):
                         print('{} %, derzeit: {}'.format((i * 100) / (len(tile_as_array)), i))
-                        temp = self.model.predict(tile_as_array[i + 1:i + (slices + 1), :])
+                        if self.model_type=='RandomForestClassifier':
+                            temp = self.model.predict_proba(tile_as_array[i + 1:i + (slices + 1), :])[:, 1]
+                        else: 
+                            temp = self.model.predict(tile_as_array[i + 1:i + (slices + 1), :])
                         class_preds.append(temp)
 
                 except MemoryError as error:
@@ -272,22 +343,25 @@ class ModelBuilder():
             self.model = self.model.fit(self.X_train, self.y_train.values.ravel())
         elif self.model_type=='XGBRegressor':
             self.model = self.model.fit(self.X_train, self.y_train)
-        elif self.model_type=='KerasLogisticRegression':
-            if len(self.X_val) == 0:
-                # If we don't have a validation set, we use the test set 
-                self.model.fit(self.X_train, self.y_train.values.ravel(), 
-                               epochs=epochs, validation_data=(self.X_test, self.y_test),
-                               callbacks=callbacks)
-            else:
-                self.model.fit(self.X_train, self.y_train.values.ravel(), epochs=epochs, 
-                               validation_data=(self.X_val, self.y_val),
-                               callbacks=callbacks)
+        # Commenting this for now as some people are having difficulties installing TF
+        # elif self.model_type=='KerasLogisticRegression':
+        #     if len(self.X_val) == 0:
+        #         # If we don't have a validation set, we use the test set 
+        #         self.model.fit(self.X_train, self.y_train.values.ravel(), 
+        #                        epochs=epochs, validation_data=(self.X_test, self.y_test),
+        #                        callbacks=callbacks)
+        #     else:
+        #         self.model.fit(self.X_train, self.y_train.values.ravel(), epochs=epochs, 
+        #                        validation_data=(self.X_val, self.y_val),
+        #                        callbacks=callbacks)
+        elif self.model_type=='RandomForestClassifier':
+            self.model = self.model.fit(self.X_train, self.y_train.values)
         elif self.model_type=='custom':
             # TODO: is that the case usually? 
             self.model = self.model.fit(self.X_train, self.y_train.values)
 
 
-    def evaluate(self, X_test, y_test, save_figures=True, saving_base_output_name=''):
+    def evaluate(self, X_data, y_data, save_figures=True, saving_base_output_name='', feature_importance=False):
         """
             Run model evaluation
 
@@ -296,6 +370,7 @@ class ModelBuilder():
         - X_test, y_test: Evaluation dataset inputs and targets
         - save_figures (boolean) if True: saves figures computed for evaluation locally
         - saving_base_output_name: (string) Base name for saving the evaluation files resulting  
+        - feature_importance: (boolean) if set to True, will compute features importance and display graph
         -------
 
         Returns
@@ -310,18 +385,18 @@ class ModelBuilder():
         -------
         """
         print("\nEvaluation...")
-        y_pred_test = self.model.predict(X_test)
-        mae = metrics.mean_absolute_error(y_test, y_pred_test)
-        mse = metrics.mean_squared_error(y_test, y_pred_test)
-        rmse =  np.sqrt(metrics.mean_squared_error(y_test, y_pred_test))
+        y_pred_test = self.model.predict(X_data)
+        mae = metrics.mean_absolute_error(y_data, y_pred_test)
+        mse = metrics.mean_squared_error(y_data, y_pred_test)
+        rmse =  np.sqrt(metrics.mean_squared_error(y_data, y_pred_test))
         
-        r2 = metrics.r2_score(y_test, y_pred_test)
+        r2 = metrics.r2_score(y_data, y_pred_test)
         print('\n\n\nMean Absolute Error (MAE):', mae)
         print('Mean Squared Error (MSE):', mse)
         print('Root Mean Squared Error (RMSE):', rmse)
         # Check out the "Out-of-Bag" (OOB) prediction score:
         print("R2:", r2)
-        if self.model_type=='RandomForestRegressor':
+        if self.model_type=='RandomForestRegressor' or self.model_type=='RandomForestClassifier':
             oob_score = self.model.oob_score_ * 100
             print('OOB prediction of accuracy is: {oob}%\n'.format(oob=oob_score))
         else:
@@ -329,15 +404,15 @@ class ModelBuilder():
             
 
         plt.figure(figsize=(5,5))
-        plt.plot(list(range(0, int(y_test.max()))), ls='dashed', alpha=0.3)
-        plt.scatter(y_test, y_pred_test, color='black')
+        plt.plot(list(range(0, int(y_data.max()))), ls='dashed', alpha=0.3)
+        plt.scatter(y_data, y_pred_test, color='black')
         plt.title("Scatter plot test vs predicted values")
         plt.xlabel('Test')
         plt.ylabel('Predicted')
         if save_figures:
             plt.savefig(f'scatter_plot_{saving_base_output_name}.png')
 
-        if self.model_type=='RandomForestRegressor':
+        if feature_importance == True:
             feature_imp = pd.DataFrame({'feature_name': self.feature_names,
                                         'importance': self.model.feature_importances_}).sort_values('importance', ascending=False)
             if save_figures:
@@ -351,6 +426,18 @@ class ModelBuilder():
                 plt.savefig(f'features_importance_{saving_base_output_name}.png')
         else: 
             feature_imp = 0 
+            
+        if self.model_type=='RandomForestClassifier':
+            y_pred_test_proba = self.model.predict_proba(X_data)[:, 1]
+            r2 = metrics.r2_score(y_data, y_pred_test_proba)
+            print("R2 with predictions probabilities:", r2)
+            
+            if self.y_test is not None:
+                print('ROC-AUC score of the model:   {}'.format(roc_auc_score(y_data, y_pred_test_proba)))
+            print('Accuracy of the model: {}\n'.format(accuracy_score(y_data, y_pred_test)))
+            print('Classification report: \n{}\n'.format(classification_report(y_data, y_pred_test)))
+            print('Confusion matrix: \n{}\n'.format(confusion_matrix(y_data, y_pred_test)))
+        
         return y_pred_test, mae, mse, rmse, oob_score, r2, feature_imp
 
 
