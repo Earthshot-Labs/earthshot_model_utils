@@ -1,6 +1,3 @@
-# Usage:
-# python3 rf_training_and_inference.py --gcp_bucket 'eartshot-science-team' --gcp_folder_name 'deforestation_risk' --samples_folder_name 'Brazil_samples_csv_scale30_2000numPixels' --tiles_folder_name 'Brazil_Deforestation_Risk_inference_2degrees_grid_scale30_with_spawn_as_base_raster' --path_to_tiles_local '/Users/margauxmforstyhe/Desktop/Brazil_Deforestation_Risk_inference_2degrees_grid_scale30_with_spawn_as_base_raster' --csv_samples_file 'Brazil_samples_csv_scale30_2000numPixels_val_test_set_10km_buffer.csv' --rf_trees 100 --max_depth 2 --run_inference --use_test_val_buffered_sets --feature_names 'aspect' 'brazil_agriculture' 'brazil_pasture' 'brazil_protected_areas' 'brazil_roads' 'brazil_surrounding_forest' 'elevation' 'forest_age' 'hillshade' 'population_density' 'slope' 'south_america_rivers' --response_variable 'Response_Variable_Brazil_Atlantic_Forest_0forest_1deforested'
-
 ####### Imports ######
 import pandas as pd
 from osgeo import gdal, ogr, gdal_array
@@ -25,6 +22,8 @@ import tensorflow as tf
 from tensorflow import keras
 from tensorflow.keras import layers
 from xgboost import XGBRegressor
+from sklearn.metrics import recall_score, roc_auc_score, f1_score
+from sklearn.metrics import accuracy_score, roc_auc_score, classification_report, confusion_matrix
 warnings.filterwarnings("ignore", "Your application has authenticated using end user credentials")
 
 # Tell GDAL to throw Python exceptions, and register all drivers
@@ -66,7 +65,9 @@ class ModelBuilder():
         self.gcp_folder_name = None
         
     def initialize_model(self, model_type='RandomForestRegressor', nb_trees=100, max_depth=4, random_state=42, max_features=1.0, n_cores=-1, 
-                         oob_score=True, bootstrap=True, criterion='squared_error', optimizer='adam', loss='mean_absolute_error', model=None):
+                         oob_score=True, bootstrap=True, criterion='squared_error', optimizer='adam', loss='mean_absolute_error', 
+                         min_samples_split=2, min_samples_leaf=1, max_leaf_nodes=None, min_impurity_decrease=0.0, verbose=1, warm_start=False,
+                         class_weight=None, ccp_alpha=0.0, max_samples=None, model=None):
         """
         Initialize the spatial model.
         
@@ -90,9 +91,19 @@ class ModelBuilder():
         """
         self.model_type = model_type
         if self.model_type=='RandomForestRegressor':
-            self.model = RandomForestRegressor(n_estimators=nb_trees, oob_score=oob_score, verbose=1, 
-                                             n_jobs=n_cores, max_depth=max_depth, max_features=max_features,
-                                             bootstrap=bootstrap, random_state=random_state, criterion=criterion)
+            self.model = RandomForestRegressor(n_estimators=nb_trees, oob_score=oob_score, 
+                                               n_jobs=n_cores, max_depth=max_depth, max_features=max_features,
+                                               bootstrap=bootstrap, random_state=random_state, criterion=criterion,
+                                               verbose=verbose)
+        if self.model_type=='RandomForestClassifier':
+            self.model = RandomForestClassifier(n_estimators=nb_trees, criterion=criterion, max_depth=max_depth, 
+                                             min_samples_split=min_samples_split, min_samples_leaf=min_samples_leaf, 
+                                             min_weight_fraction_leaf=min_impurity_decrease, max_features=max_features, 
+                                             max_leaf_nodes=max_leaf_nodes, min_impurity_decrease=0.0, 
+                                             bootstrap=bootstrap, oob_score=oob_score, 
+                                             n_jobs=n_cores, 
+                                             random_state=random_state, verbose=verbose, 
+                                             warm_start=warm_start, class_weight=class_weight, ccp_alpha=ccp_alpha, max_samples=max_samples)
         elif self.model_type=='XGBRegressor':
             self.model = XGBRegressor(n_estimators=nb_trees, max_depth=max_depths, verbose=1,)
         elif self.model_type=='KerasLogisticRegression':
@@ -125,20 +136,28 @@ class ModelBuilder():
         # first prediction will be tried on the entire image
         # if not enough RAM, the dataset will be sliced
         try:
-            class_prediction = self.model.predict(tile_as_array)
+            if self.model_type=='RandomForestClassifier':
+                class_prediction = self.model.predict_proba(tile_as_array)[:, 1]
+            else:
+                class_prediction = self.model.predict(tile_as_array)
         except MemoryError:
             slices = int(round(len(tile_as_array) / 2))
             test = True
             while test == True:
                 try:
                     class_preds = list()
-
-                    temp = self.model.predict(tile_as_array[0:slices + 1, :])
+                    if self.model_type=='RandomForestClassifier':
+                        temp = self.model.predict_proba(tile_as_array[0:slices + 1, :])[:, 1]
+                    else:
+                        temp = self.model.predict(tile_as_array[0:slices + 1, :])
                     class_preds.append(temp)
 
                     for i in range(slices, len(tile_as_array), slices):
                         print('{} %, derzeit: {}'.format((i * 100) / (len(tile_as_array)), i))
-                        temp = self.model.predict(tile_as_array[i + 1:i + (slices + 1), :])
+                        if self.model_type=='RandomForestClassifier':
+                            temp = self.model.predict_proba(tile_as_array[i + 1:i + (slices + 1), :])[:, 1]
+                        else: 
+                            temp = self.model.predict(tile_as_array[i + 1:i + (slices + 1), :])
                         class_preds.append(temp)
 
                 except MemoryError as error:
@@ -282,12 +301,14 @@ class ModelBuilder():
                 self.model.fit(self.X_train, self.y_train.values.ravel(), epochs=epochs, 
                                validation_data=(self.X_val, self.y_val),
                                callbacks=callbacks)
+        elif self.model_type=='RandomForestClassifier':
+            self.model = self.model.fit(self.X_train, self.y_train.values)
         elif self.model_type=='custom':
             # TODO: is that the case usually? 
             self.model = self.model.fit(self.X_train, self.y_train.values)
 
 
-    def evaluate(self, X_test, y_test, save_figures=True, saving_base_output_name=''):
+    def evaluate(self, X_test, y_test, save_figures=True, saving_base_output_name='', feature_importance=False):
         """
             Run model evaluation
 
@@ -296,6 +317,7 @@ class ModelBuilder():
         - X_test, y_test: Evaluation dataset inputs and targets
         - save_figures (boolean) if True: saves figures computed for evaluation locally
         - saving_base_output_name: (string) Base name for saving the evaluation files resulting  
+        - feature_importance: (boolean) if set to True, will compute features importance and display graph
         -------
 
         Returns
@@ -321,7 +343,7 @@ class ModelBuilder():
         print('Root Mean Squared Error (RMSE):', rmse)
         # Check out the "Out-of-Bag" (OOB) prediction score:
         print("R2:", r2)
-        if self.model_type=='RandomForestRegressor':
+        if self.model_type=='RandomForestRegressor' or self.model_type=='RandomForestClassifier':
             oob_score = self.model.oob_score_ * 100
             print('OOB prediction of accuracy is: {oob}%\n'.format(oob=oob_score))
         else:
@@ -337,7 +359,7 @@ class ModelBuilder():
         if save_figures:
             plt.savefig(f'scatter_plot_{saving_base_output_name}.png')
 
-        if self.model_type=='RandomForestRegressor':
+        if feature_importance == True:
             feature_imp = pd.DataFrame({'feature_name': self.feature_names,
                                         'importance': self.model.feature_importances_}).sort_values('importance', ascending=False)
             if save_figures:
@@ -351,6 +373,18 @@ class ModelBuilder():
                 plt.savefig(f'features_importance_{saving_base_output_name}.png')
         else: 
             feature_imp = 0 
+            
+        if self.model_type=='RandomForestClassifier':
+            y_pred_test_proba = self.model.predict_proba(X_test)[:, 1]
+            r2 = metrics.r2_score(y_test, y_pred_test_proba)
+            print("R2:", r2)
+            
+            if self.y_test is not None:
+                print('ROC-AUC score of the model:   {}'.format(roc_auc_score(y_test, y_pred_test_proba)))
+            print('Accuracy of the model: {}\n'.format(accuracy_score(y_test, y_pred_test)))
+            print('Classification report: \n{}\n'.format(classification_report(y_test, y_pred_test)))
+            print('Confusion matrix: \n{}\n'.format(confusion_matrix(y_test, y_pred_test)))
+        
         return y_pred_test, mae, mse, rmse, oob_score, r2, feature_imp
 
 

@@ -74,6 +74,7 @@ class EEDatasetBuilder():
             self.response_variable = custom_response_raster_name
         elif response_raster == None: 
             response = ee.Image(1)
+            self.response_variable = 'constant'
         else:
             print("Please select a correct response raster name: Spawn_AGB_tCO2e, GEDI_Biomass_1km_tCO2, Walker_AGB_500m_tCO2, Response_Variable_Brazil_Atlantic_Forest_0forest_1deforested if you want to have a response layer -- otherwise, use the function spatial_covariates directly")
 
@@ -202,7 +203,7 @@ class EEDatasetBuilder():
         if self.image is None:
             self.image = ee.Image(1)
         
-        mask = self.image.select(self.response_variable).mask()
+        mask = self.image.select(str(self.response_variable)).mask()
         if type(covariates) != list:
             print('Error! covariates should be lists')
         for i in range(len(covariates)):
