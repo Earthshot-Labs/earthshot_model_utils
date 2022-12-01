@@ -361,7 +361,7 @@ class ModelBuilder():
             self.model = self.model.fit(self.X_train, self.y_train.values)
 
 
-    def evaluate(self, X_test, y_test, save_figures=True, saving_base_output_name='', feature_importance=False):
+    def evaluate(self, X_data, y_data, save_figures=True, saving_base_output_name='', feature_importance=False):
         """
             Run model evaluation
 
@@ -385,12 +385,12 @@ class ModelBuilder():
         -------
         """
         print("\nEvaluation...")
-        y_pred_test = self.model.predict(X_test)
-        mae = metrics.mean_absolute_error(y_test, y_pred_test)
-        mse = metrics.mean_squared_error(y_test, y_pred_test)
-        rmse =  np.sqrt(metrics.mean_squared_error(y_test, y_pred_test))
+        y_pred_test = self.model.predict(X_data)
+        mae = metrics.mean_absolute_error(y_data, y_pred_test)
+        mse = metrics.mean_squared_error(y_data, y_pred_test)
+        rmse =  np.sqrt(metrics.mean_squared_error(y_data, y_pred_test))
         
-        r2 = metrics.r2_score(y_test, y_pred_test)
+        r2 = metrics.r2_score(y_data, y_pred_test)
         print('\n\n\nMean Absolute Error (MAE):', mae)
         print('Mean Squared Error (MSE):', mse)
         print('Root Mean Squared Error (RMSE):', rmse)
@@ -404,8 +404,8 @@ class ModelBuilder():
             
 
         plt.figure(figsize=(5,5))
-        plt.plot(list(range(0, int(y_test.max()))), ls='dashed', alpha=0.3)
-        plt.scatter(y_test, y_pred_test, color='black')
+        plt.plot(list(range(0, int(y_data.max()))), ls='dashed', alpha=0.3)
+        plt.scatter(y_data, y_pred_test, color='black')
         plt.title("Scatter plot test vs predicted values")
         plt.xlabel('Test')
         plt.ylabel('Predicted')
@@ -428,15 +428,15 @@ class ModelBuilder():
             feature_imp = 0 
             
         if self.model_type=='RandomForestClassifier':
-            y_pred_test_proba = self.model.predict_proba(X_test)[:, 1]
-            r2 = metrics.r2_score(y_test, y_pred_test_proba)
+            y_pred_test_proba = self.model.predict_proba(X_data)[:, 1]
+            r2 = metrics.r2_score(y_data, y_pred_test_proba)
             print("R2 with predictions probabilities:", r2)
             
             if self.y_test is not None:
-                print('ROC-AUC score of the model:   {}'.format(roc_auc_score(y_test, y_pred_test_proba)))
-            print('Accuracy of the model: {}\n'.format(accuracy_score(y_test, y_pred_test)))
-            print('Classification report: \n{}\n'.format(classification_report(y_test, y_pred_test)))
-            print('Confusion matrix: \n{}\n'.format(confusion_matrix(y_test, y_pred_test)))
+                print('ROC-AUC score of the model:   {}'.format(roc_auc_score(y_data, y_pred_test_proba)))
+            print('Accuracy of the model: {}\n'.format(accuracy_score(y_data, y_pred_test)))
+            print('Classification report: \n{}\n'.format(classification_report(y_data, y_pred_test)))
+            print('Confusion matrix: \n{}\n'.format(confusion_matrix(y_data, y_pred_test)))
         
         return y_pred_test, mae, mse, rmse, oob_score, r2, feature_imp
 
