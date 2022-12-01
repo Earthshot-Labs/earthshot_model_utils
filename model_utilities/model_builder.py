@@ -377,7 +377,7 @@ class ModelBuilder():
         if self.model_type=='RandomForestClassifier':
             y_pred_test_proba = self.model.predict_proba(X_test)[:, 1]
             r2 = metrics.r2_score(y_test, y_pred_test_proba)
-            print("R2:", r2)
+            print("R2 with predictions probabilities:", r2)
             
             if self.y_test is not None:
                 print('ROC-AUC score of the model:   {}'.format(roc_auc_score(y_test, y_pred_test_proba)))
