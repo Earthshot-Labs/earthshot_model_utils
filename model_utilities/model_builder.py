@@ -26,7 +26,7 @@ import argparse
 # import tensorflow as tf
 # from tensorflow import keras
 # from tensorflow.keras import layers
-# from xgboost import XGBRegressor
+from xgboost import XGBRegressor
 warnings.filterwarnings("ignore", "Your application has authenticated using end user credentials")
 
 # Tell GDAL to throw Python exceptions, and register all drivers
