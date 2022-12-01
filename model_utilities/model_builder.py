@@ -15,12 +15,11 @@ import shutil
 import glob
 import seaborn as sns
 import matplotlib.pyplot as plt
-from utils import upload_to_bucket, glob_blob_in_GCP
 from sklearn.model_selection import GridSearchCV
 import argparse
-import tensorflow as tf
-from tensorflow import keras
-from tensorflow.keras import layers
+# import tensorflow as tf
+# from tensorflow import keras
+# from tensorflow.keras import layers
 from xgboost import XGBRegressor
 from sklearn.metrics import recall_score, roc_auc_score, f1_score
 from sklearn.metrics import accuracy_score, roc_auc_score, classification_report, confusion_matrix
@@ -32,6 +31,58 @@ gdal.AllRegister()
 ROOT_DIR = os.path.dirname(os.path.abspath('.'))
 print(ROOT_DIR)
 
+
+####### Functions ######
+def upload_to_bucket(gcp_bucket, folder_name, file_name, file_local_path):
+    """
+    Upload a file to a GCP bucket
+
+    Parameters
+    ----------
+    - gcp_bucket: (string) name of the GCP bucket
+    - folder_name: (string) name of the folder in the GCP bucket
+    - file_name: (string) name of the file that will be uploaded to GCP
+    - file_local_path: (string) local path of the file
+    -------
+    """
+    client = storage.Client()
+    storage.blob._DEFAULT_CHUNKSIZE = 5 * 1024 * 1024 # https://github.com/GoogleCloudPlatform/python-docs-samples/issues/2488#issuecomment-1170362655
+    bucket = client.bucket(gcp_bucket)
+    blob_path = f"{folder_name}/{file_name}"
+    print(f"\nUpload to bucket: {blob_path} from {file_local_path}")
+    blob = bucket.blob(blob_path)
+    if os.path.exists(file_local_path):
+        blob.upload_from_filename(file_local_path)
+    else:
+        print(f'ERROR in upload_to_bucket: file {file_local_path} does not exist.')
+    return blob_path
+
+
+
+def glob_blob_in_GCP(gcp_bucket, gcp_folder_name, extension='.tif'):
+    """
+    Finds all the pathnames in GCP bucket folder matching the extension provided.
+
+    Parameters
+    ----------
+    - gcp_bucket: (string) name of the GCP bucket
+    - gcp_folder_name: (string) name of the folder in the GCP bucket
+    - extension: (string) extension of the files to find the pathnames. default='.tif'
+
+    -------
+    Return
+    ----------
+    - list_paths: (list of strings) of the matching GCP pathnames
+    -------
+    """
+    client = storage.Client()
+    list_paths = []
+    for blob in client.list_blobs(gcp_bucket, prefix=f'{gcp_folder_name}'):
+        file = str(blob).split('/')[-1].split(',')[0]
+        if extension in file:
+            # see https://gis.stackexchange.com/questions/428298/open-raster-file-with-gdal-on-google-cloud-storage-bucket-returns-none
+            list_paths.append(f'/vsigs/{gcp_bucket}/{gcp_folder_name}/{file}')
+    return list_paths
 
 class ModelBuilder():
 
@@ -73,7 +124,7 @@ class ModelBuilder():
         
         Parameters
         ----------
-        - model_type: (string) Define the type of the model initialized. eg: RandomForestRegressor, KerasLogisticRegression, XGBRegressor, custom (user passes their own model)
+        - model_type: (string) Define the type of the model initialized. eg: RandomForestRegressor, RandomForestClassifier, XGBRegressor, custom (user passes their own model)
         - nb_trees: (int) number of trees for the Random Forest model
         - max_depth: (int) The maximum depth of the tree. If None, then nodes are expanded until all leaves 
         are pure or until all leaves contain less than min_samples_split samples.
@@ -106,14 +157,15 @@ class ModelBuilder():
                                              warm_start=warm_start, class_weight=class_weight, ccp_alpha=ccp_alpha, max_samples=max_samples)
         elif self.model_type=='XGBRegressor':
             self.model = XGBRegressor(n_estimators=nb_trees, max_depth=max_depths, verbose=1,)
-        elif self.model_type=='KerasLogisticRegression':
-            training = np.array(self.X_train)
-            normalizer = layers.Normalization(input_shape=[len(self.feature_names),], axis=None)
-            normalizer.adapt(training)
-            self.model = keras.Sequential([normalizer,
-                                          layers.Dense(1 , activation="sigmoid") 
-                                      ])
-            self.model.compile(optimizer=optimizer, loss=loss)
+        # Commenting this for now as some people are having difficulties installing TF
+        # elif self.model_type=='KerasLogisticRegression':
+        #     training = np.array(self.X_train)
+        #     normalizer = layers.Normalization(input_shape=[len(self.feature_names),], axis=None)
+        #     normalizer.adapt(training)
+        #     self.model = keras.Sequential([normalizer,
+        #                                   layers.Dense(1 , activation="sigmoid") 
+        #                               ])
+        #     self.model.compile(optimizer=optimizer, loss=loss)
         elif self.model_type=='custom':
             self.model = model
         
@@ -291,16 +343,17 @@ class ModelBuilder():
             self.model = self.model.fit(self.X_train, self.y_train.values.ravel())
         elif self.model_type=='XGBRegressor':
             self.model = self.model.fit(self.X_train, self.y_train)
-        elif self.model_type=='KerasLogisticRegression':
-            if len(self.X_val) == 0:
-                # If we don't have a validation set, we use the test set 
-                self.model.fit(self.X_train, self.y_train.values.ravel(), 
-                               epochs=epochs, validation_data=(self.X_test, self.y_test),
-                               callbacks=callbacks)
-            else:
-                self.model.fit(self.X_train, self.y_train.values.ravel(), epochs=epochs, 
-                               validation_data=(self.X_val, self.y_val),
-                               callbacks=callbacks)
+        # Commenting this for now as some people are having difficulties installing TF
+        # elif self.model_type=='KerasLogisticRegression':
+        #     if len(self.X_val) == 0:
+        #         # If we don't have a validation set, we use the test set 
+        #         self.model.fit(self.X_train, self.y_train.values.ravel(), 
+        #                        epochs=epochs, validation_data=(self.X_test, self.y_test),
+        #                        callbacks=callbacks)
+        #     else:
+        #         self.model.fit(self.X_train, self.y_train.values.ravel(), epochs=epochs, 
+        #                        validation_data=(self.X_val, self.y_val),
+        #                        callbacks=callbacks)
         elif self.model_type=='RandomForestClassifier':
             self.model = self.model.fit(self.X_train, self.y_train.values)
         elif self.model_type=='custom':
