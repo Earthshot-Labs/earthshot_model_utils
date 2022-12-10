@@ -1,4 +1,4 @@
-#TODO: testing
+# TODO: testing
 
 import ee
 from tqdm import tqdm
@@ -14,12 +14,13 @@ class EEDatasetBuilder():
         creating training data for machine learning models of biomass with spatial covariates. The image is exposed as a
         property (.image) of the instantiated class.
         """
-        #Initialize the image with None
+        # Initialize the image with None
         self.image = None
-        #Initialize connection to GEE
+        # Initialize connection to GEE
         ee.Initialize()
 
-    def filtered_response_layer_from_raster(self, response_raster, filter_dict={}, ee_image=None, custom_response_raster_name=None):
+    def filtered_response_layer_from_raster(self, response_raster, filter_dict={}, ee_image=None,
+                                            custom_response_raster_name=None):
         """
 
         Parameters
@@ -55,33 +56,36 @@ class EEDatasetBuilder():
             # Global Aboveground and Belowground Biomass Carbon Density Map
             # Get Above Ground Biomass band and convert it to tCO2e
             response = ee.ImageCollection("NASA/ORNL/biomass_carbon_density/v1").first()
-            response = response.select('agb').multiply(44/12).rename(response_raster)
+            response = response.select('agb').multiply(44 / 12).rename(response_raster)
         elif response_raster == 'GEDI_Biomass_1km_tCO2':
             # GEDI L4B Gridded Aboveground Biomass Density (Version 2)
             # Get Above Ground Biomass band and convert it to tCO2e
-            response = ee.Image('LARSE/GEDI/GEDI04_B_002').select('MU').multiply(44/12).multiply(0.47)
+            response = ee.Image('LARSE/GEDI/GEDI04_B_002').select('MU').multiply(44 / 12).multiply(0.47)
             response = response.rename(response_raster)
         elif response_raster == 'Walker_AGB_500m_tCO2':
             # The global potential for increased storage of carbon on land
             # Get Above Ground Biomass band and convert it to tCO2e
-            walker = ee.Image('users/steve_klosterman/Walker_et_al/Base_Cur_AGB_MgCha_500m')   # re-aligned map
-            response = walker.multiply(44/12).select([0], ['tCO2e'])
+            walker = ee.Image('users/steve_klosterman/Walker_et_al/Base_Cur_AGB_MgCha_500m')  # re-aligned map
+            response = walker.multiply(44 / 12).select([0], ['tCO2e'])
             response = response.rename(response_raster)
         elif response_raster == 'Response_Variable_Brazil_Atlantic_Forest_0forest_1deforested':
-            response = ee.Image('users/prpiffer/Deforestation_Risk/Response_Variable_Atlantic_Forest_0forest_1deforested').rename(response_raster)
+            response = ee.Image(
+                'users/prpiffer/Deforestation_Risk/Response_Variable_Atlantic_Forest_0forest_1deforested').rename(
+                response_raster)
         elif response_raster == 'custom':
             response = ee_image.rename(custom_response_raster_name)
             self.response_variable = custom_response_raster_name
-        elif response_raster == None: 
+        elif response_raster == None:
             response = ee.Image(1)
             self.response_variable = 'constant'
         else:
-            print("Please select a correct response raster name: Spawn_AGB_tCO2e, GEDI_Biomass_1km_tCO2, Walker_AGB_500m_tCO2, Response_Variable_Brazil_Atlantic_Forest_0forest_1deforested if you want to have a response layer -- otherwise, use the function spatial_covariates directly")
+            print(
+                "Please select a correct response raster name: Spawn_AGB_tCO2e, GEDI_Biomass_1km_tCO2, Walker_AGB_500m_tCO2, Response_Variable_Brazil_Atlantic_Forest_0forest_1deforested if you want to have a response layer -- otherwise, use the function spatial_covariates directly")
 
-        #Apply filters
+        # Apply filters
         for key in filter_dict:
             if key == 'forest_non_forest':
-                #Create a forest/non forest mask using the Global PALSAR-2/PALSAR Forest/Non-Forest Layer.
+                # Create a forest/non forest mask using the Global PALSAR-2/PALSAR Forest/Non-Forest Layer.
                 dataset_forest = ee.ImageCollection('JAXA/ALOS/PALSAR/YEARLY/FNF').filterDate(
                     filter_dict[key]['date_range'][0], filter_dict[key]['date_range'][1]).first()
                 # Select the Forest/Non-Forest landcover classification band
@@ -90,26 +94,26 @@ class EEDatasetBuilder():
                 mask_forest = fnf.eq(1)
                 response = response.updateMask(mask_forest)
             if key == 'min_forest_age':
-                #Create a forest age mask using the forest age from
-                #"Mapping global forest age from forest inventories, biomass and climate data"
-                #https://essd.copernicus.org/articles/13/4881/2021/essd-13-4881-2021.pdf
+                # Create a forest age mask using the forest age from
+                # "Mapping global forest age from forest inventories, biomass and climate data"
+                # https://essd.copernicus.org/articles/13/4881/2021/essd-13-4881-2021.pdf
                 dataset_age = ee.Image("projects/es-gis-resources/assets/forestage").select([0], ['forestage'])
                 # Get forests older than age
                 mask_age = dataset_age.gte(filter_dict[key]['age'])
                 response = response.updateMask(mask_age)
             if key == 'very_low_density_rural':
-                #Create degree of urbanisation mask using the GHSL - Global Human Settlement Layer:
-                #https://ghsl.jrc.ec.europa.eu/ghs_smod2022.php
-                #This filter is used in the Walker paper
+                # Create degree of urbanisation mask using the GHSL - Global Human Settlement Layer:
+                # https://ghsl.jrc.ec.europa.eu/ghs_smod2022.php
+                # This filter is used in the Walker paper
                 year = filter_dict[key]['year']
                 dataset_urbanisation = ee.Image(
                     f'projects/ee-mmf-mature-forest-biomass/assets/GHS_SMOD_E{year}_GLOBE_R2022A_54009_1000_V1_0')
-                #Mask to pixels belonging to very low density rural grid cells (11)
+                # Mask to pixels belonging to very low density rural grid cells (11)
                 mask_urbanisation_degree = dataset_urbanisation.eq(11)
                 response = response.updateMask(mask_urbanisation_degree)
             if key == 'forest_loss':
-                #Create Forest loss proximity mask using the Hansen Global Forest Change v1.9 (2000-2021)
-                #TODO: Review code
+                # Create Forest loss proximity mask using the Hansen Global Forest Change v1.9 (2000-2021)
+                # TODO: Review code
                 dataset_hansen_loss = ee.Image('UMD/hansen/global_forest_change_2021_v1_9').select('lossyear')
                 # Distance from forest loss from before {year}
                 year = filter_dict[key]['year']
@@ -119,7 +123,7 @@ class EEDatasetBuilder():
                 mask_forest_loss_proximity = distance_forest_loss.mask().eq(0)
                 response = response.updateMask(mask_forest_loss_proximity)
             if key == 'forest_gain':
-                #Create Forest gain proximity mask using the Hansen Global Forest Change v1.9 (2000-2021)
+                # Create Forest gain proximity mask using the Hansen Global Forest Change v1.9 (2000-2021)
                 # TODO: Review code
                 dataset_hansen_gain = ee.Image('UMD/hansen/global_forest_change_2021_v1_9').select('gain')
                 # Distance from forest gain
@@ -129,8 +133,8 @@ class EEDatasetBuilder():
                 mask_forest_gain_proximity = distance_forest_gain.mask().eq(0)
                 response = response.updateMask(mask_forest_gain_proximity)
             if key == 'roads':
-                #Create roads proximity mask using the Global Roads Open Access Data Set (gROADS),
-                #v1 (1980–2010) dataset
+                # Create roads proximity mask using the Global Roads Open Access Data Set (gROADS),
+                # v1 (1980–2010) dataset
                 # TODO: Review code
                 dataset_roads = ee.FeatureCollection('projects/ee-mmf-mature-forest-biomass/assets/gROADSv1')
                 distance = filter_dict[key]['distance']
@@ -138,7 +142,7 @@ class EEDatasetBuilder():
                 mask_roads_proximity = distance_roads.mask().eq(0)
                 response = response.updateMask(mask_roads_proximity)
             if key == 'fire':
-                #Create past fires mask using FireCCI51: MODIS Fire_cci Burned Area Pixel Product, Version 5.1
+                # Create past fires mask using FireCCI51: MODIS Fire_cci Burned Area Pixel Product, Version 5.1
                 # TODO: Review code and overall approach
                 year = filter_dict[key]['year']
                 dataset = ee.ImageCollection('ESA/CCI/FireCCI/5_1').filterDate('2001-01-01', f'{year}-12-31')
@@ -147,7 +151,7 @@ class EEDatasetBuilder():
                 mask_past_fires = maxBA.mask().eq(0)
                 response = response.updateMask(mask_past_fires)
             if key == 'protected_areas':
-                #Create protected areas mask
+                # Create protected areas mask
                 # TODO: Review code and overall approach
                 dataset = ee.FeatureCollection('WCMC/WDPA/current/polygons')
                 mask_protected_areas = ee.Image().float().paint(dataset, 'REP_AREA')
@@ -202,15 +206,20 @@ class EEDatasetBuilder():
         # constant value = 1 because otherwise the image is empty and will masked out all pixels in updateMask
         if self.image is None:
             self.image = ee.Image(1)
-        
-        mask = self.image.select(str(self.response_variable)).mask()
+            mask = self.image.mask()
+        else:
+            # Use the mask from the response variable
+            mask = self.image.select(str(self.response_variable)).mask()
+
         if type(covariates) != list:
             print('Error! covariates should be lists')
         for i in range(len(covariates)):
             covariate = covariates[i]
             # MapBiomas land use cover maps: 
             # Select year 2010 as is it the start of our period
-            MapBiomas_v7 = ee.Image('projects/mapbiomas-workspace/public/collection7/mapbiomas_collection70_integration_v2').select('classification_2010')
+            MapBiomas_v7 = ee.Image(
+                'projects/mapbiomas-workspace/public/collection7/mapbiomas_collection70_integration_v2').select(
+                'classification_2010')
             # TODO: create a dictionary/catalogue for the co-variantes? Where do we store the assets? 
             # TODO: refactoring
             if covariate == 'ecoregion':
@@ -223,9 +232,9 @@ class EEDatasetBuilder():
                 # Using 1960 to 1991 to match with BioClim.
                 terraclimate_dataset = ee.ImageCollection('IDAHO_EPSCOR/TERRACLIMATE').filter(
                     ee.Filter.date('1960-01-01', '1991-01-01'))
-                #Take the mean of these monthly data over this time period (retains all bands of image apparently)
+                # Take the mean of these monthly data over this time period (retains all bands of image apparently)
                 terraclimate_mean = terraclimate_dataset.reduce(ee.Reducer.mean())
-                #Add all bands to output
+                # Add all bands to output
                 self.image = self.image.addBands(terraclimate_mean.updateMask(mask))
             if covariate == 'soil':
                 band_asset_dict = {'bulk_dens': 'SOL_BULKDENS-FINEEARTH_USDA-4A1H_M/v02',
@@ -241,7 +250,16 @@ class EEDatasetBuilder():
                     # Renaming the bands of the soil data layers because they all have the same names otherwise
                     temp_dataset = self.rename_bands(temp_dataset, key)
                     self.image = self.image.addBands(temp_dataset.updateMask(mask))
-
+            if covariate == 'soilgrids_isric':
+                soil_vars = ['bdod', 'cec', 'cfvo', 'clay', 'nitrogen', 'ocd', 'ocs', 'phh2o', 'sand', 'silt', 'soc']
+                for var in soil_vars:
+                    temp_img = ee.Image(f'projects/soilgrids-isric/{var}_mean')
+                    # Get average of 6 depths of measurement
+                    temp_img = temp_img.reduce(ee.Reducer.mean())
+                    # Make sure band has the right name
+                    temp_img = self.rename_bands(temp_img, f'{var}')
+                    # Add image to covariates stack
+                    self.image = self.image.addBands(temp_img.updateMask(mask))
             if covariate == 'bioclim':
                 bioclim_image = ee.Image('WORLDCLIM/V1/BIO')
                 self.image = self.image.addBands(bioclim_image.updateMask(mask))
@@ -267,46 +285,51 @@ class EEDatasetBuilder():
                 self.image = self.image.addBands(distPA.updateMask(mask))
             if covariate == 'population_density':
                 # Population density asset from Columbia's CIESIN
-                popDensity = ee.ImageCollection("CIESIN/GPWv411/GPW_Population_Density").filterDate('2018-01-01','2021-01-01').first().select('population_density')
+                popDensity = ee.ImageCollection("CIESIN/GPWv411/GPW_Population_Density").filterDate('2018-01-01',
+                                                                                                    '2021-01-01').first().select(
+                    'population_density')
                 self.image = self.image.addBands(popDensity.updateMask(mask))
             if covariate == 'forest_age':
-                forets_age = ee.Image("projects/es-gis-resources/assets/forestage").select([0], ['forestage']).rename('forest_age')
+                forets_age = ee.Image("projects/es-gis-resources/assets/forestage").select([0], ['forestage']).rename(
+                    'forest_age')
                 self.image = self.image.addBands(forets_age.updateMask(mask))
             if covariate == 'urbanization':
-                urbanization = ee.Image('projects/ee-mmf-mature-forest-biomass/assets/GHS_SMOD_E2020_GLOBE_R2022A_54009_1000_V1_0')
-                urbanization = urbanization.remap([10,11,12,13,21,22,23,30],[0,1,2,3,4,5,6,7],0).rename('urbanization')
+                urbanization = ee.Image(
+                    'projects/ee-mmf-mature-forest-biomass/assets/GHS_SMOD_E2020_GLOBE_R2022A_54009_1000_V1_0')
+                urbanization = urbanization.remap([10, 11, 12, 13, 21, 22, 23, 30], [0, 1, 2, 3, 4, 5, 6, 7], 0).rename(
+                    'urbanization')
                 self.image = self.image.addBands(urbanization.updateMask(mask))
             if covariate == 'brazil_surrounding_forest':
                 # Creating land use cover variables:
                 # Forest:
-                forest = MapBiomas_v7.remap([3,4,5,49],[1,1,1,1],0)
+                forest = MapBiomas_v7.remap([3, 4, 5, 49], [1, 1, 1, 1], 0)
                 # TODO not hard coded distances
                 nearbyForest = forest.reduceNeighborhood(**{
-                                      'reducer': ee.Reducer.sum(),
-                                      'kernel': ee.Kernel.square(**{'radius': 15, 
-                                                                'units': 'pixels', 
-                                                                'normalize': False})
-                                      }).rename('brazil_surrounding_forest')
+                    'reducer': ee.Reducer.sum(),
+                    'kernel': ee.Kernel.square(**{'radius': 15,
+                                                  'units': 'pixels',
+                                                  'normalize': False})
+                }).rename('brazil_surrounding_forest')
                 self.image = self.image.addBands(nearbyForest.updateMask(mask))
             if covariate == 'brazil_pasture':
-                pasture = MapBiomas_v7.remap([15,21],[1,1],0)
+                pasture = MapBiomas_v7.remap([15, 21], [1, 1], 0)
                 # TODO not hard coded distances
                 nearbyPasture = pasture.reduceNeighborhood(**{
-                                      'reducer': ee.Reducer.sum(),
-                                      'kernel': ee.Kernel.square(**{'radius': 15, 
-                                                                'units': 'pixels', 
-                                                                'normalize': False})
-                                      }).rename('brazil_pasture')
+                    'reducer': ee.Reducer.sum(),
+                    'kernel': ee.Kernel.square(**{'radius': 15,
+                                                  'units': 'pixels',
+                                                  'normalize': False})
+                }).rename('brazil_pasture')
                 self.image = self.image.addBands(nearbyPasture.updateMask(mask))
             if covariate == 'brazil_agriculture':
                 # TODO not hard coded distances
-                agriculture = MapBiomas_v7.remap([20,39,40,41,46,47,48],[1,1,1,1,1,1,1],0)
+                agriculture = MapBiomas_v7.remap([20, 39, 40, 41, 46, 47, 48], [1, 1, 1, 1, 1, 1, 1], 0)
                 nearbyAgriculture = agriculture.reduceNeighborhood(**{
-                                      'reducer': ee.Reducer.sum(),
-                                      'kernel': ee.Kernel.square(**{'radius': 15, 
-                                                                'units': 'pixels', 
-                                                                'normalize': False})
-                                      }).rename('brazil_agriculture')
+                    'reducer': ee.Reducer.sum(),
+                    'kernel': ee.Kernel.square(**{'radius': 15,
+                                                  'units': 'pixels',
+                                                  'normalize': False})
+                }).rename('brazil_agriculture')
                 self.image = self.image.addBands(nearbyAgriculture.updateMask(mask))
             if covariate == 'urban_distance':
                 # Distance to urban centers:
@@ -320,15 +343,15 @@ class EEDatasetBuilder():
                 else:
                     custom_ee_image = ee_image[i].rename(name_custom_ee_image[i])
                     self.image = self.image.addBands(custom_ee_image.updateMask(mask))
-                
+
             # Removing band "constant" created when response raster is empty
             bands_names = self.image.bandNames().getInfo()
             if "constant" in bands_names:
                 bands_names.remove("constant")
-                self.image = self.image.select(bands_names) 
+                self.image = self.image.select(bands_names)
 
+                # TODO: test if ee asset looks good after export
 
-    # TODO: test if ee asset looks good after export
     def export_image_as_asset(self, name_asset, scale, maxPixels):
         """
         Export image as an ee asset
@@ -373,10 +396,10 @@ class EEDatasetBuilder():
         -------
 
         """
-        #Create feature collection from asset
+        # Create feature collection from asset
         test_polygons = ee.FeatureCollection(feature_collection)
 
-        #Buffer the test set polygons if requested
+        # Buffer the test set polygons if requested
         if buffer is not None:
             def buffer_by(size):
                 return lambda feature: feature.buffer(size)
@@ -459,9 +482,11 @@ class EEDatasetBuilder():
                                                     **task_config)
         task.start()
 
-    def samples_csv_export(self, shp_asset_path, name_gcp_bucket, folder_in_gcp_bucket, numPixels=None, scale=None, factor=None, seed=0, projection=None,
-                           tileScale=1, geometries=True, dropNulls=True, isStratifiedSampling=False, numPoints=None, classBand=None, classPoints=None,
-                          classValues=None):
+    def samples_csv_export(self, shp_asset_path, name_gcp_bucket, folder_in_gcp_bucket, numPixels=None, scale=None,
+                           factor=None, seed=0, projection=None,
+                           tileScale=1, geometries=True, dropNulls=True, isStratifiedSampling=False, numPoints=None,
+                           classBand=None, classPoints=None,
+                           classValues=None):
         """
         Generates samples from the image and export them as CSV files to GCP bucket.
 
@@ -491,11 +516,12 @@ class EEDatasetBuilder():
         ###### Loading shapefile asset ######
         nb_features, list_features_assets = self.load_ee_asset_shapefile(shp_asset_path)
         if isStratifiedSampling:
-                print(f'Stratified sampling: \nnumPoints: {numPoints}, \nclassBand: {classBand}, \nscale: {scale}, \ngeometries: {geometries}, \ndropNulls: {dropNulls}, \ntileScale: {tileScale}, \nclassPoints: {classPoints}, \nseed: {seed}, \nprojection:{projection}')
+            print(
+                f'Stratified sampling: \nnumPoints: {numPoints}, \nclassBand: {classBand}, \nscale: {scale}, \ngeometries: {geometries}, \ndropNulls: {dropNulls}, \ntileScale: {tileScale}, \nclassPoints: {classPoints}, \nseed: {seed}, \nprojection:{projection}')
         else:
-            print(f'Sampling: \nnumPixels: {numPixels}, \nscale: {scale}, \ngeometries: {geometries}, \ndropNulls: {dropNulls}, \ntileScale: {tileScale}, \nfactor: {factor}, \nprojection:{projection}')
-            
-            
+            print(
+                f'Sampling: \nnumPixels: {numPixels}, \nscale: {scale}, \ngeometries: {geometries}, \ndropNulls: {dropNulls}, \ntileScale: {tileScale}, \nfactor: {factor}, \nprojection:{projection}')
+
         # Looping through the grids
         for i in tqdm(range(nb_features)):
             if isStratifiedSampling:
@@ -536,11 +562,12 @@ class EEDatasetBuilder():
             # Export csv one by one (if not empty) to avoid GEE queries limitations
             if size != 0:
                 self.export_samples_to_cloud_storage(sample_current_feature, index=i,
-                                             name_gcp_bucket=name_gcp_bucket,
-                                             folder_in_gcp_bucket=folder_in_gcp_bucket,
-                                             scale=scale)
+                                                     name_gcp_bucket=name_gcp_bucket,
+                                                     folder_in_gcp_bucket=folder_in_gcp_bucket,
+                                                     scale=scale)
 
-    def export_tiles_to_cloud_storage(self, image, region, name_gcp_bucket, folder_in_gcp_bucket, index, scale, maxPixels):
+    def export_tiles_to_cloud_storage(self, image, region, name_gcp_bucket, folder_in_gcp_bucket, index, scale,
+                                      maxPixels):
         """
         Exports tiles images to GCP bucket.
 
@@ -557,12 +584,12 @@ class EEDatasetBuilder():
         """
         # Export image to GCP bucket
         task = ee.batch.Export.image.toCloudStorage(image=image.clip(region),
-                                                     region=region,
-                                                     bucket=name_gcp_bucket,
-                                                     fileNamePrefix=folder_in_gcp_bucket + '/' + f'inference_tiles_scale{scale}_{index}',
-                                                     description=f'inference_tiles_scale{scale}_{index}',
-                                                     scale=scale,
-                                                     maxPixels=maxPixels)
+                                                    region=region,
+                                                    bucket=name_gcp_bucket,
+                                                    fileNamePrefix=folder_in_gcp_bucket + '/' + f'inference_tiles_scale{scale}_{index}',
+                                                    description=f'inference_tiles_scale{scale}_{index}',
+                                                    scale=scale,
+                                                    maxPixels=maxPixels)
         task.start()
 
     def tiles_export(self, shp_asset_path, name_gcp_bucket, folder_in_gcp_bucket, scale, maxPixels=1e13):
@@ -588,12 +615,13 @@ class EEDatasetBuilder():
         for i in tqdm(range(nb_features)):
             test = self.image.clip(list_features_assets[i]['geometry'])
             self.export_tiles_to_cloud_storage(test.float(), region=ee.Geometry(list_features_assets[i]['geometry']),
-                                              name_gcp_bucket=name_gcp_bucket,
-                                              folder_in_gcp_bucket=folder_in_gcp_bucket,
-                                              index=i, scale=scale, maxPixels=maxPixels)
+                                               name_gcp_bucket=name_gcp_bucket,
+                                               folder_in_gcp_bucket=folder_in_gcp_bucket,
+                                               index=i, scale=scale, maxPixels=maxPixels)
+
 
 ################################
-#TODO: Anika I think we can incorporate all the below functionality into the above. For example the above code
+# TODO: Anika I think we can incorporate all the below functionality into the above. For example the above code
 # can produce a filtered biomass image, and with some additional methods it can be reduced to percentiles within a
 # buffer of the same ecoregion
 
@@ -653,6 +681,7 @@ def mature_biomass_spawn(lat, lng, buffer=20):
 
     return y_max_agb_bgb
 
+
 # maximum biomass using Joe's deciles method
 
 def _formatDecileResponse_OLD(features):
@@ -678,6 +707,7 @@ def _formatDecileResponse_OLD(features):
         for p in [f['properties'] for f in features['features']]
     }
 
+
 def _formatDecileResponse(features):
     """
     Private function making data out of EE more accessible
@@ -700,6 +730,7 @@ def _formatDecileResponse(features):
     }
         for p in [f['properties'] for f in features['features']]
     }
+
 
 def getNearbyMatureForestPercentiles(geojson, buffer=20):
     """
@@ -749,7 +780,7 @@ def getNearbyMatureForestPercentiles(geojson, buffer=20):
     # Biomass - Spawn dataset: https://www.nature.com/articles/s41597-020-0444-4
     biomass = ee.ImageCollection("NASA/ORNL/biomass_carbon_density/v1").first()
     biomass = (biomass.select('agb').add(biomass.select('bgb'))
-               .multiply(44/12).select([0], ['tCO2e']))  # agb_bgb in tCO2e/ha
+               .multiply(44 / 12).select([0], ['tCO2e']))  # agb_bgb in tCO2e/ha
 
     # Mask away non forests and young forests, and then get the pdf
     featureDeciles = (biomass.mask(forestMask).mask(matureForest)
@@ -766,6 +797,7 @@ def getNearbyMatureForestPercentiles(geojson, buffer=20):
         tCO2eha_max = ecozone['tCO2e_max']
 
     return tCO2eha_deciles, tCO2eha_max
+
 
 def getWalkerValues(geojson):
     aoi = ee.FeatureCollection(geojson['features'])
@@ -790,7 +822,7 @@ def getWalkerValues(geojson):
 
     # Convert C -> CO2e
     walker_potC = (walker_potC.select('b1')
-                   .multiply(44/12)
+                   .multiply(44 / 12)
                    .select([0], ['tCO2e']))  # agb_bgb in tCO2e/ha
 
     featureValues = walker_potC.sampleRegions(bounds).getInfo()
