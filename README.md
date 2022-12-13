@@ -1,7 +1,14 @@
 # model_utilities
-Utility functions for model development and deployment
+Utility functions for geospatial model development
 
-This folder contains an installable Python package called `model_utilities` with a number of functions for the science team to conduct deep dives to do carbon projects for specific projects.
+This repository contains an installable Python package called `model_utilities` with a wide range of functionality for:
+- building training and testing datasets for geospatial machine learning models, from assets in google earth engine
+- automated model training
+- performing inference with trained models to create wall-to-wall maps
+
+and more described below related to forest mensuration, that we plan to split into a separate repository in the future.
+
+Improved documentation is coming soon. For now check out the `tests` directory for demonstrations. Please reach out to steve@earthshot.eco with questions, feedback, or ideas.
 
 # Installation:
 Download folder to your local workspace. In Terminal activate the virtual environment where you want to install the `model_utilities` package. Navigate to the `model_utilities` folder (in terminal). Pip install the package using `pip install .`. This should install the package into the activated virutal environment. Then in Python (jupyter notebook or elsewhere using the same virtual environment) you will be able to access the package using `import model_utilities`. Functions can be used as `model_utilities.forest_mensuration.clean_biomass_data(...)`.
