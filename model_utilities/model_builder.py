@@ -25,6 +25,7 @@ from sklearn.metrics import recall_score, roc_auc_score, f1_score
 from sklearn.metrics import accuracy_score, roc_auc_score, classification_report, confusion_matrix
 from model_utilities.gdal_merge import merge
 
+
 warnings.filterwarnings("ignore", "Your application has authenticated using end user credentials")
 
 # Tell GDAL to throw Python exceptions, and register all drivers
@@ -562,3 +563,4 @@ class ModelBuilder():
         if tiles_in_GCP:
             # Remove temp directory
             shutil.rmtree(output_folder_temp)
+
