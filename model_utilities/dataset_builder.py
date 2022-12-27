@@ -181,9 +181,9 @@ class EEDatasetBuilder():
         image_bands_renamed: the image with the correctly renamed bands
         -------
         """
-        renamed_bands_names = [f'{prefix}_{name}' for name in image.bandNames().getInfo()]
-        image_renamed = image.select(image.bandNames().getInfo()).rename(
-            renamed_bands_names)
+        original_band_names = image.bandNames().getInfo()
+        renamed_bands_names = [f'{prefix}_{name}' for name in original_band_names]
+        image_renamed = image.select(original_band_names).rename(renamed_bands_names)
         return image_renamed
 
     def spatial_covariates(self, covariates, ee_image=None, name_custom_ee_image=None):
@@ -448,10 +448,10 @@ class EEDatasetBuilder():
         try:
             # Loading the shapefile that was uploaded as a GEE asset -- we load the asset as a FeatureCollection
             asset = ee.FeatureCollection(shp_asset_path)
-            # nb_features = number of grid cells in the shapefile
-            nb_features = asset.size().getInfo()
             # Converting FeatureCollection to python list because it crashes when query > 5000 elements
-            list_features_assets = asset.toList(nb_features).getInfo()
+            list_features_assets = asset.toList(asset.size()).getInfo()
+            # nb_features = number of grid cells in the shapefile
+            nb_features = len(list_features_assets)
             print(f"Geometry number of features: {nb_features}")
         except:
             print(f"Error when loading FeatureCollection: {shp_asset_path}.")
