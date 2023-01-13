@@ -23,15 +23,14 @@ import argparse
 from xgboost import XGBRegressor
 from sklearn.metrics import recall_score, roc_auc_score, f1_score
 from sklearn.metrics import accuracy_score, roc_auc_score, classification_report, confusion_matrix
+from model_utilities.gdal_merge import merge
+
 
 warnings.filterwarnings("ignore", "Your application has authenticated using end user credentials")
 
 # Tell GDAL to throw Python exceptions, and register all drivers
 gdal.UseExceptions()
 gdal.AllRegister()
-ROOT_DIR = os.path.dirname(os.path.abspath('.'))
-print(ROOT_DIR)
-
 
 ####### Functions ######
 def upload_to_bucket(gcp_bucket, folder_name, file_name, file_local_path):
@@ -231,7 +230,7 @@ class ModelBuilder():
         except NameError:
             print('No slicing was necessary!')
         class_prediction = class_prediction.reshape(tile[:, :, 0].shape)
-        print('Reshaped back to {}'.format(class_prediction.shape))
+        # print('Reshaped back to {}'.format(class_prediction.shape))
 
         return class_prediction
 
@@ -448,7 +447,7 @@ class ModelBuilder():
         return y_pred_test, mae, mse, rmse, oob_score, r2, feature_imp
 
     def inference(self, mask_band, tiles_folder_name, tiles_in_GCP,
-                  RF_output_folder_temp='RF_outputs_temp', path_to_tiles_local=''):
+                  output_folder_temp='outputs_temp', path_to_tiles_local=''):
         """
             Run inference on tiles using trained model and merge the results.
 
@@ -457,13 +456,13 @@ class ModelBuilder():
         - mask_band: (string) Name of band to use to remove "bleeding" from predictions
         - tiles_folder_name: (string) name of inference tiles folder
         - tiles_in_GCP: (boolean) If running with local tiles: tiles_in_GCP = False
-        - RF_output_folder_temp: (string) path to output folder where the predictions will be saved
+        - output_folder_temp: (string) path to output folder where the predictions will be saved
         - path_to_tiles_local: Local path to tiles if tiles_in_GCP = True
         -------
 
         """
-        if not os.path.exists(RF_output_folder_temp):
-            os.makedirs(RF_output_folder_temp)
+        if not os.path.exists(output_folder_temp):
+            os.makedirs(output_folder_temp)
 
         gcp_folder_path_inference_tiles = self.gcp_folder_name + '/' + tiles_folder_name
         # Find names of the predictors tiles in the GCP bucket and store them in list predictors_tiffiles
@@ -494,14 +493,14 @@ class ModelBuilder():
             for b in range(len(self.feature_names)):
                 corresponding_raster_band_index = bands.index(self.feature_names[b])
                 tile[:, :, b] = img_ds.GetRasterBand(corresponding_raster_band_index + 1).ReadAsArray()
-            print(f"tile shape: {tile.shape}")
+            # print(f"tile shape: {tile.shape}")
 
             # Take our full image and reshape into long 2d array (nrow * ncol, nband) for classification
             new_shape = (tile.shape[0] * tile.shape[1], tile.shape[2])
             tile_as_array = tile[:, :, :np.int(tile.shape[2])].reshape(new_shape)
-            print('Reshaped from {o} to {n}'.format(o=tile.shape, n=tile_as_array.shape))
+            # print('Reshaped from {o} to {n}'.format(o=tile.shape, n=tile_as_array.shape))
             tile_as_array = np.nan_to_num(tile_as_array)
-            print(tile_as_array.shape)
+            # print(tile_as_array.shape)
 
             # Predict for each pixel
             class_prediction = self.run_inference_on_tile(tile=tile, tile_as_array=tile_as_array)
@@ -509,7 +508,7 @@ class ModelBuilder():
             # Generate mask from selected band of predictors
             mask = np.copy(tile[:, :, self.feature_names.index(mask_band)]).astype(
                 np.uint8)  # using the mask_branch layer here to have positive values
-            print(np.unique(mask))
+            # print(np.unique(mask))
             mask[mask > 0] = 1  # all actual pixels have a value of 1.0
 
             # Mask predictions raster
@@ -517,9 +516,9 @@ class ModelBuilder():
             class_prediction_ = class_prediction * mask
 
             # Save predictions raster
-            classification_image = f"{RF_output_folder_temp}/RF_output_{str(datetime.datetime.now()).split('.')[0].replace(' ', '-').replace(':', '_')}_{i}.tif"
+            classification_image = f"{output_folder_temp}/output_{str(datetime.datetime.now()).split('.')[0].replace(' ', '-').replace(':', '_')}_{i}.tif"
             class_prediction_.astype(np.float16)
-            print(class_prediction_.shape)
+            # print(class_prediction_.shape)
             cols = tile.shape[1]
             rows = tile.shape[0]
             driver = gdal.GetDriverByName("GTiff")
@@ -535,50 +534,33 @@ class ModelBuilder():
             print('Image saved to: {}\n\n\n'.format(classification_image))
 
             i = i + 1
-            if tiles_in_GCP:
-                # Upload to bucket
-                blob_path = upload_to_bucket(gcp_bucket=self.gcp_bucket,
-                                             folder_name=self.gcp_folder_name + '/' + RF_output_folder_name,
-                                             file_name=classification_image.split('/')[-1],
-                                             file_local_path=classification_image)
-                print(f"Image uploaded to GCP bucket: {blob_path}")
-                # Delete image locally
-                os.remove(classification_image)
+
         print(f"Done: {i} tiles predicted")
 
         ################## Merge all predictions raster tiles ##################
-        output_merged_tif = RF_output_folder_temp + '/merged.tif'
+        output_merged_tif = 'final_merged_predictions_result.tif'
 
-        # Find names of the predictions raster tiles in the GCP bucket and store them in list paths_pred_rasters
-        if tiles_in_GCP:
-            paths_pred_rasters = glob_blob_in_GCP(gcp_bucket=self.gcp_bucket,
-                                                  gcp_folder_name=self.gcp_folder_name + '/' + RF_output_folder_name,
-                                                  extension='.tif')
-        else:
-            paths_pred_rasters = glob.glob(RF_output_folder_temp + '/*.tif')
+        # Find names of the predictions raster tiles
+        paths_pred_rasters = glob.glob(output_folder_temp + '/*.tif')
 
         paths_pred_rasters.sort()
         print(f'There are {len(paths_pred_rasters)} prediction rasters to be merged.')
 
-        import sys
-
-        # setting path
-        print(f'ROOT_DIR: {ROOT_DIR}')
-        sys.path.append(ROOT_DIR)
-        command_list = ['python3', 'gdal_merge.py', "-ot", "Float32", "-a_nodata", "0", "-n", "0", "-co",
-                        "COMPRESS=DEFLATE", f"-o", f"{output_merged_tif}"]
-        command_list.extend(paths_pred_rasters)
-        subprocess.run(command_list)
+        # Changed gdal_merge.py script to be a callable function instead of calling the script 
+        merge(names=paths_pred_rasters, out_file=output_merged_tif, format = 'GTiff', verbose=0, nodata=0, 
+              a_nodata=0, create_options=['COMPRESS=DEFLATE'], band_type="Float32")
 
         print('Done. Upload final merge tif to GCP bucket')
         # upload final merge tif to GCP bucket
         blob_path = upload_to_bucket(gcp_bucket=self.gcp_bucket,
-                                     folder_name=self.gcp_folder_name + '/' + RF_output_folder_temp,
-                                     file_name=output_merged_tif.split('/')[-1],
+                                     folder_name=self.gcp_folder_name + '/' + output_folder_temp,
+                                     file_name=output_merged_tif,
+                                     # file_name=output_merged_tif.split('/')[-1],
                                      file_local_path=output_merged_tif)
 
         print(f'Done! {i} prediction rasters were merged to {blob_path}')
 
         if tiles_in_GCP:
             # Remove temp directory
-            shutil.rmtree(RF_output_folder_temp)
+            shutil.rmtree(output_folder_temp)
+

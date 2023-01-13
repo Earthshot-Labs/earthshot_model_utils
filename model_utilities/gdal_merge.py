@@ -1,10 +1,11 @@
 #!/usr/bin/env python
 ###############################################################################
-# $Id: gdal_merge.py 22325 2011-05-07 19:50:58Z rouault $
+# $Id: Modified version of gdal_merge.py 22325 2011-05-07 19:50:58Z rouault $
 #
 # Project:  InSAR Peppers
 # Purpose:  Module to extract data from many rasters into one output.
 # Author:   Frank Warmerdam, warmerdam@pobox.com
+# Modifications done by Margaux Masson-Forsythe (Earthshot Labs) (Goal is to support merging tiles with a simple function call instead of calling the python script through command line)
 #
 ###############################################################################
 # Copyright (c) 2000, Atlantis Scientific Inc. (www.atlsci.com)
@@ -235,142 +236,34 @@ class file_info:
                          nodata_arg )
 
 
-# =============================================================================
-def Usage():
-    print('Usage: gdal_merge.py [-o out_filename] [-of out_format] [-co NAME=VALUE]*')
-    print('                     [-ps pixelsize_x pixelsize_y] [-tap] [-separate] [-q] [-v] [-pct]')
-    print('                     [-ul_lr ulx uly lrx lry] [-init "value [value...]"]')
-    print('                     [-n nodata_value] [-a_nodata output_nodata_value]')
-    print('                     [-ot datatype] [-createonly] input_files')
-    print('                     [--help-general]')
-    print('')
+def merge(names=[], out_file='out.tif', format = 'GTiff', verbose=1, quiet=0, separate=0, copy_pct=0, 
+        ulx = None, psize_x = None, nodata = None, a_nodata = None, create_options = [], pre_init = [],
+        band_type = None, createonly = 0, bTargetAlignedPixels = False, init=False):
 
-# =============================================================================
-#
-# Program mainline.
-#
-
-def main( argv=None ):
-
-    global verbose, quiet
-    verbose = 0
-    quiet = 0
-    names = []
-    format = 'GTiff'
-    out_file = 'out.tif'
-
-    ulx = None
-    psize_x = None
-    separate = 0
-    copy_pct = 0
-    nodata = None
-    a_nodata = None
-    create_options = []
-    pre_init = []
-    band_type = None
-    createonly = 0
-    bTargetAlignedPixels = False
+    if not band_type==None:
+        band_type = gdal.GetDataTypeByName(band_type)
+        if band_type == gdal.GDT_Unknown:
+            print('Unknown GDAL data type: %s' % argv[i])
+            sys.exit( 1 )
+            
+    if init:
+        str_pre_init = argv[i].split()
+        for x in str_pre_init:
+            pre_init.append(float(x))
+            
+    if nodata:
+        nodata = float(nodata)
+        
+    if a_nodata:
+        a_nodata = float(a_nodata)
+    
+    if create_options:
+        create_options = create_options
 
     gdal.AllRegister()
-    if argv is None:
-        argv = sys.argv
-    argv = gdal.GeneralCmdLineProcessor( argv )
-    if argv is None:
-        sys.exit(0)
-
-    # Parse command line arguments.
-    i = 1
-    while i < len(argv):
-        arg = argv[i]
-
-        if arg == '-o':
-            i = i + 1
-            out_file = argv[i]
-
-        elif arg == '-v':
-            verbose = 1
-
-        elif arg == '-q' or arg == '-quiet':
-            quiet = 1
-
-        elif arg == '-createonly':
-            createonly = 1
-
-        elif arg == '-separate':
-            separate = 1
-
-        elif arg == '-seperate':
-            separate = 1
-
-        elif arg == '-pct':
-            copy_pct = 1
-
-        elif arg == '-ot':
-            i = i + 1
-            band_type = gdal.GetDataTypeByName( argv[i] )
-            if band_type == gdal.GDT_Unknown:
-                print('Unknown GDAL data type: %s' % argv[i])
-                sys.exit( 1 )
-
-        elif arg == '-init':
-            i = i + 1
-            str_pre_init = argv[i].split()
-            for x in str_pre_init:
-                pre_init.append(float(x))
-
-        elif arg == '-n':
-            i = i + 1
-            nodata = float(argv[i])
-
-        elif arg == '-a_nodata':
-            i = i + 1
-            a_nodata = float(argv[i])
-
-        elif arg == '-f':
-            # for backward compatibility.
-            i = i + 1
-            format = argv[i]
-
-        elif arg == '-of':
-            i = i + 1
-            format = argv[i]
-
-        elif arg == '-co':
-            i = i + 1
-            create_options.append( argv[i] )
-
-        elif arg == '-ps':
-            psize_x = float(argv[i+1])
-            psize_y = -1 * abs(float(argv[i+2]))
-            i = i + 2
-
-        elif arg == '-tap':
-            bTargetAlignedPixels = True
-
-        elif arg == '-ul_lr':
-            ulx = float(argv[i+1])
-            uly = float(argv[i+2])
-            lrx = float(argv[i+3])
-            lry = float(argv[i+4])
-            i = i + 4
-
-        elif arg[:1] == '-':
-            print('Unrecognised command option: %s' % arg)
-            Usage()
-            sys.exit( 1 )
-
-        else:
-            # Expand any possible wildcards from command line arguments
-            f = glob.glob( arg )
-            # if len(f) == 0:
-            #     print('File not found: "%s"' % (str( arg )))
-            names += ['%s' % (str( arg ))] # append 1 or more files -- fixed for files in GCP buckets (questions can be asked to Margaux Masson-Forsythe)
-            # names += f  # append 1 or more files
-        i = i + 1
-
+ 
     if len(names) == 0:
-        print('No input files selected.')
-        Usage()
+        print('gdal_merge: No input files selected.')
         sys.exit( 1 )
 
     Driver = gdal.GetDriverByName(format)
@@ -405,56 +298,37 @@ def main( argv=None ):
     if band_type is None:
         band_type = file_infos[0].band_type
 
-    # Try opening as an existing file.
-    gdal.PushErrorHandler( 'CPLQuietErrorHandler' )
-    t_fh = gdal.Open( out_file, gdal.GA_Update )
-    gdal.PopErrorHandler()
+    if bTargetAlignedPixels:
+        ulx = math.floor(ulx / psize_x) * psize_x
+        lrx = math.ceil(lrx / psize_x) * psize_x
+        lry = math.floor(lry / -psize_y) * -psize_y
+        uly = math.ceil(uly / -psize_y) * -psize_y
 
-    # Create output file if it does not already exist.
-    if t_fh is None:
+    geotransform = [ulx, psize_x, 0, uly, 0, psize_y]
 
-        if bTargetAlignedPixels:
-            ulx = math.floor(ulx / psize_x) * psize_x
-            lrx = math.ceil(lrx / psize_x) * psize_x
-            lry = math.floor(lry / -psize_y) * -psize_y
-            uly = math.ceil(uly / -psize_y) * -psize_y
-
-        geotransform = [ulx, psize_x, 0, uly, 0, psize_y]
-
-        xsize = int((lrx - ulx) / geotransform[1] + 0.5)
-        ysize = int((lry - uly) / geotransform[5] + 0.5)
+    xsize = int((lrx - ulx) / geotransform[1] + 0.5)
+    ysize = int((lry - uly) / geotransform[5] + 0.5)
 
 
-        if separate != 0:
-            bands=0
+    if separate != 0:
+        bands=0
 
-            for fi in file_infos:
-                bands=bands + fi.bands
-        else:
-            bands = file_infos[0].bands
-
-
-        t_fh = Driver.Create( out_file, xsize, ysize, bands,
-                              band_type, create_options )
-        if t_fh is None:
-            print('Creation failed, terminating gdal_merge.')
-            sys.exit( 1 )
-
-        t_fh.SetGeoTransform( geotransform )
-        t_fh.SetProjection( file_infos[0].projection )
-
-        if copy_pct:
-            t_fh.GetRasterBand(1).SetRasterColorTable(file_infos[0].ct)
+        for fi in file_infos:
+            bands=bands + fi.bands
     else:
-        if separate != 0:
-            bands=0
-            for fi in file_infos:
-                bands=bands + fi.bands
-            if t_fh.RasterCount < bands :
-                print('Existing output file has less bands than the input files. You should delete it before. Terminating gdal_merge.')
-                sys.exit( 1 )
-        else:
-            bands = min(file_infos[0].bands,t_fh.RasterCount)
+        bands = file_infos[0].bands
+
+    t_fh = Driver.Create( out_file, xsize, ysize, bands,
+                          band_type, create_options )
+    if t_fh is None:
+        print('Creation failed, terminating gdal_merge.')
+        sys.exit( 1 )
+
+    t_fh.SetGeoTransform( geotransform )
+    t_fh.SetProjection( file_infos[0].projection )
+
+    if copy_pct:
+        t_fh.GetRasterBand(1).SetRasterColorTable(file_infos[0].ct)
 
     # Do we need to set nodata value ?
     if a_nodata is not None:
