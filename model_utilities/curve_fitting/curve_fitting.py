@@ -113,7 +113,7 @@ class GrowthCurveFit():
 
         return predictions, age_years
 
-    def predictions_with_monte_carlo(self, years_predict=100, n_mc=1000):
+    def predictions_with_monte_carlo(self, years_predict=100, n_mc=1000, seed=0):
         """
 
         Parameters
@@ -148,7 +148,7 @@ class GrowthCurveFit():
             #Monte Carlo ensemble
             if n_mc > 0:
                 # Make Monte Carlo ensemble, get median and 95% CI bounds
-                param_sample = np.random.default_rng().multivariate_normal(mean=self.params[row_counter],
+                param_sample = np.random.default_rng(seed).multivariate_normal(mean=self.params[row_counter],
                                                                            cov=self.covars[row_counter],
                                                                            size=n_mc).T
                 series_list = []
