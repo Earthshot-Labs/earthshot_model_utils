@@ -14,6 +14,11 @@ setup(
                       'seaborn',
                       'ee',
                       'scipy',
+                      'GDAL',
+                      'google-cloud-storage',
+                      'scikit-learn',
+                      'tqdm',
+                      'shutil'
                       ],
 
     classifiers=[

@@ -23,14 +23,14 @@ import argparse
 from xgboost import XGBRegressor
 from sklearn.metrics import recall_score, roc_auc_score, f1_score
 from sklearn.metrics import accuracy_score, roc_auc_score, classification_report, confusion_matrix
+from model_utilities.gdal_merge import merge
+
+
 warnings.filterwarnings("ignore", "Your application has authenticated using end user credentials")
 
 # Tell GDAL to throw Python exceptions, and register all drivers
 gdal.UseExceptions()
 gdal.AllRegister()
-ROOT_DIR = os.path.dirname(os.path.abspath('.'))
-print(ROOT_DIR)
-
 
 ####### Functions ######
 def upload_to_bucket(gcp_bucket, folder_name, file_name, file_local_path):
@@ -46,7 +46,7 @@ def upload_to_bucket(gcp_bucket, folder_name, file_name, file_local_path):
     -------
     """
     client = storage.Client()
-    storage.blob._DEFAULT_CHUNKSIZE = 5 * 1024 * 1024 # https://github.com/GoogleCloudPlatform/python-docs-samples/issues/2488#issuecomment-1170362655
+    storage.blob._DEFAULT_CHUNKSIZE = 5 * 1024 * 1024  # https://github.com/GoogleCloudPlatform/python-docs-samples/issues/2488#issuecomment-1170362655
     bucket = client.bucket(gcp_bucket)
     blob_path = f"{folder_name}/{file_name}"
     print(f"\nUpload to bucket: {blob_path} from {file_local_path}")
@@ -56,7 +56,6 @@ def upload_to_bucket(gcp_bucket, folder_name, file_name, file_local_path):
     else:
         print(f'ERROR in upload_to_bucket: file {file_local_path} does not exist.')
     return blob_path
-
 
 
 def glob_blob_in_GCP(gcp_bucket, gcp_folder_name, extension='.tif'):
@@ -84,6 +83,7 @@ def glob_blob_in_GCP(gcp_bucket, gcp_folder_name, extension='.tif'):
             list_paths.append(f'/vsigs/{gcp_bucket}/{gcp_folder_name}/{file}')
     return list_paths
 
+
 class ModelBuilder():
 
     def __init__(self):
@@ -108,16 +108,19 @@ class ModelBuilder():
         """
         # Initialize the model 
         self.model = None
-        
+
         # Inialize parameters
         self.feature_names = []
         self.response_variable = []
         self.gcp_bucket = None
         self.gcp_folder_name = None
-        
-    def initialize_model(self, model_type='RandomForestRegressor', nb_trees=100, max_depth=4, random_state=42, max_features=1.0, n_cores=-1, 
-                         oob_score=True, bootstrap=True, criterion='squared_error', optimizer='adam', loss='mean_absolute_error', 
-                         min_samples_split=2, min_samples_leaf=1, max_leaf_nodes=None, min_impurity_decrease=0.0, verbose=1, warm_start=False,
+
+    def initialize_model(self, model_type='RandomForestRegressor', nb_trees=100, max_depth=4, random_state=42,
+                         max_features=1.0, n_cores=-1,
+                         oob_score=True, bootstrap=True, criterion='squared_error', optimizer='adam',
+                         loss='mean_absolute_error',
+                         min_samples_split=2, min_samples_leaf=1, max_leaf_nodes=None, min_impurity_decrease=0.0,
+                         verbose=1, warm_start=False,
                          class_weight=None, ccp_alpha=0.0, max_samples=None, model=None):
         """
         Initialize the spatial model.
@@ -141,22 +144,24 @@ class ModelBuilder():
         
         """
         self.model_type = model_type
-        if self.model_type=='RandomForestRegressor':
-            self.model = RandomForestRegressor(n_estimators=nb_trees, oob_score=oob_score, 
+        if self.model_type == 'RandomForestRegressor':
+            self.model = RandomForestRegressor(n_estimators=nb_trees, oob_score=oob_score,
                                                n_jobs=n_cores, max_depth=max_depth, max_features=max_features,
                                                bootstrap=bootstrap, random_state=random_state, criterion=criterion,
                                                verbose=verbose)
-        if self.model_type=='RandomForestClassifier':
-            self.model = RandomForestClassifier(n_estimators=nb_trees, criterion=criterion, max_depth=max_depth, 
-                                             min_samples_split=min_samples_split, min_samples_leaf=min_samples_leaf, 
-                                             min_weight_fraction_leaf=min_impurity_decrease, max_features=max_features, 
-                                             max_leaf_nodes=max_leaf_nodes, min_impurity_decrease=0.0, 
-                                             bootstrap=bootstrap, oob_score=oob_score, 
-                                             n_jobs=n_cores, 
-                                             random_state=random_state, verbose=verbose, 
-                                             warm_start=warm_start, class_weight=class_weight, ccp_alpha=ccp_alpha, max_samples=max_samples)
-        elif self.model_type=='XGBRegressor':
-            self.model = XGBRegressor(n_estimators=nb_trees, max_depth=max_depths, verbose=1,)
+        if self.model_type == 'RandomForestClassifier':
+            self.model = RandomForestClassifier(n_estimators=nb_trees, criterion=criterion, max_depth=max_depth,
+                                                min_samples_split=min_samples_split, min_samples_leaf=min_samples_leaf,
+                                                min_weight_fraction_leaf=min_impurity_decrease,
+                                                max_features=max_features,
+                                                max_leaf_nodes=max_leaf_nodes, min_impurity_decrease=0.0,
+                                                bootstrap=bootstrap, oob_score=oob_score,
+                                                n_jobs=n_cores,
+                                                random_state=random_state, verbose=verbose,
+                                                warm_start=warm_start, class_weight=class_weight, ccp_alpha=ccp_alpha,
+                                                max_samples=max_samples)
+        elif self.model_type == 'XGBRegressor':
+            self.model = XGBRegressor(n_estimators=nb_trees, max_depth=max_depths, verbose=1, )
         # Commenting this for now as some people are having difficulties installing TF
         # elif self.model_type=='KerasLogisticRegression':
         #     training = np.array(self.X_train)
@@ -166,10 +171,9 @@ class ModelBuilder():
         #                                   layers.Dense(1 , activation="sigmoid") 
         #                               ])
         #     self.model.compile(optimizer=optimizer, loss=loss)
-        elif self.model_type=='custom':
+        elif self.model_type == 'custom':
             self.model = model
-        
-        
+
     def run_inference_on_tile(self, tile, tile_as_array):
         """
         Run Random Forest inference on all pixels of an array tile.
@@ -188,7 +192,7 @@ class ModelBuilder():
         # first prediction will be tried on the entire image
         # if not enough RAM, the dataset will be sliced
         try:
-            if self.model_type=='RandomForestClassifier':
+            if self.model_type == 'RandomForestClassifier':
                 class_prediction = self.model.predict_proba(tile_as_array)[:, 1]
             else:
                 class_prediction = self.model.predict(tile_as_array)
@@ -198,7 +202,7 @@ class ModelBuilder():
             while test == True:
                 try:
                     class_preds = list()
-                    if self.model_type=='RandomForestClassifier':
+                    if self.model_type == 'RandomForestClassifier':
                         temp = self.model.predict_proba(tile_as_array[0:slices + 1, :])[:, 1]
                     else:
                         temp = self.model.predict(tile_as_array[0:slices + 1, :])
@@ -206,9 +210,9 @@ class ModelBuilder():
 
                     for i in range(slices, len(tile_as_array), slices):
                         print('{} %, derzeit: {}'.format((i * 100) / (len(tile_as_array)), i))
-                        if self.model_type=='RandomForestClassifier':
+                        if self.model_type == 'RandomForestClassifier':
                             temp = self.model.predict_proba(tile_as_array[i + 1:i + (slices + 1), :])[:, 1]
-                        else: 
+                        else:
                             temp = self.model.predict(tile_as_array[i + 1:i + (slices + 1), :])
                         class_preds.append(temp)
 
@@ -226,16 +230,18 @@ class ModelBuilder():
         except NameError:
             print('No slicing was necessary!')
         class_prediction = class_prediction.reshape(tile[:, :, 0].shape)
-        print('Reshaped back to {}'.format(class_prediction.shape))
+        # print('Reshaped back to {}'.format(class_prediction.shape))
 
         return class_prediction
 
-
-    def train_val_test_split(self, response_variable, feature_names, gcp_bucket, gcp_folder_name, samples_folder_name, 
-                       name_csv_samples_merged_file, use_test_val_buffered_sets, test_size=0.20, samples_csv_local=False,
-                       name_test_buffer_column='test_set_10km_buffer', name_val_buffer_column='val_set_10km_buffer', 
-                       name_test_no_buffer_column='test_set_no_buffer', name_val_no_buffer_column='val_set_no_buffer'
-                       ):
+    def train_val_test_split(self, response_variable, feature_names, gcp_bucket, gcp_folder_name, samples_folder_name,
+                             name_csv_samples_merged_file, use_test_val_buffered_sets, test_size=0.20,
+                             samples_csv_local=False,
+                             name_test_buffer_column='test_set_10km_buffer',
+                             name_val_buffer_column='val_set_10km_buffer',
+                             name_test_no_buffer_column='test_set_no_buffer',
+                             name_val_no_buffer_column='val_set_no_buffer'
+                             ):
         """
             Create the dataset with split train, test and val sets from a csv files that contains the exported samples.
 
@@ -282,8 +288,10 @@ class ModelBuilder():
             self.y_val = df_val[self.response_variable]
         else:
             # Split train/test sets
-            self.X_train, self.X_test, self.y_train, self.y_test = train_test_split(df[self.feature_names], df[self.response_variable], 
-                                                                                    test_size=test_size, random_state=42)
+            self.X_train, self.X_test, self.y_train, self.y_test = train_test_split(df[self.feature_names],
+                                                                                    df[self.response_variable],
+                                                                                    test_size=test_size,
+                                                                                    random_state=42)
             self.X_val = []
             self.y_val = []
 
@@ -292,8 +300,8 @@ class ModelBuilder():
         print(f"Training samples: {len(self.X_train)}")
         print(f"Test samples: {len(self.X_test)}")
         print(f"Validation samples: {len(self.X_val)}")
-        
-    def grid_search(self, n_estimators=[100, 200, 500], max_features=['sqrt', 'log2'], max_depth=[4,5,6,7,8], 
+
+    def grid_search(self, n_estimators=[100, 200, 500], max_features=['sqrt', 'log2'], max_depth=[4, 5, 6, 7, 8],
                     criterion=['squared_error', 'absolute_error'], random_state=42):
         """
             Run Grid Search to find best hyper parameters
@@ -312,13 +320,13 @@ class ModelBuilder():
         - GSCV.best_params_: best parameters to use for training
         -------
         """
-        random_forest_tuning = RandomForestRegressor(random_state=random_state)  
-        param_grid = { 
-                'n_estimators': n_estimators,
-                'max_features': max_features,
-                'max_depth' : max_depth, 
-                'criterion' : criterion
-            }
+        random_forest_tuning = RandomForestRegressor(random_state=random_state)
+        param_grid = {
+            'n_estimators': n_estimators,
+            'max_features': max_features,
+            'max_depth': max_depth,
+            'criterion': criterion
+        }
         GSCV = GridSearchCV(estimator=random_forest_tuning, param_grid=param_grid, cv=5, verbose=1)
         if len(self.X_val) == 0:
             GSCV.fit(self.X_test, self.y_test.values.ravel())
@@ -326,7 +334,6 @@ class ModelBuilder():
             GSCV.fit(self.X_val, self.y_val.values.ravel())
         print(GSCV.best_params_)
         return GSCV.best_params_
-        
 
     def train(self, epochs=100, callbacks=[]):
         """
@@ -339,9 +346,9 @@ class ModelBuilder():
         - callbacks: (list) list of Keras callbacks
         -------
         """
-        if self.model_type=='RandomForestRegressor':
+        if self.model_type == 'RandomForestRegressor':
             self.model = self.model.fit(self.X_train, self.y_train.values.ravel())
-        elif self.model_type=='XGBRegressor':
+        elif self.model_type == 'XGBRegressor':
             self.model = self.model.fit(self.X_train, self.y_train)
         # Commenting this for now as some people are having difficulties installing TF
         # elif self.model_type=='KerasLogisticRegression':
@@ -354,12 +361,11 @@ class ModelBuilder():
         #         self.model.fit(self.X_train, self.y_train.values.ravel(), epochs=epochs, 
         #                        validation_data=(self.X_val, self.y_val),
         #                        callbacks=callbacks)
-        elif self.model_type=='RandomForestClassifier':
+        elif self.model_type == 'RandomForestClassifier':
             self.model = self.model.fit(self.X_train, self.y_train.values)
-        elif self.model_type=='custom':
+        elif self.model_type == 'custom':
             # TODO: is that the case usually? 
             self.model = self.model.fit(self.X_train, self.y_train.values)
-
 
     def evaluate(self, X_data, y_data, save_figures=True, saving_base_output_name='', feature_importance=False):
         """
@@ -388,22 +394,21 @@ class ModelBuilder():
         y_pred_test = self.model.predict(X_data)
         mae = metrics.mean_absolute_error(y_data, y_pred_test)
         mse = metrics.mean_squared_error(y_data, y_pred_test)
-        rmse =  np.sqrt(metrics.mean_squared_error(y_data, y_pred_test))
-        
+        rmse = np.sqrt(metrics.mean_squared_error(y_data, y_pred_test))
+
         r2 = metrics.r2_score(y_data, y_pred_test)
         print('\n\n\nMean Absolute Error (MAE):', mae)
         print('Mean Squared Error (MSE):', mse)
         print('Root Mean Squared Error (RMSE):', rmse)
         # Check out the "Out-of-Bag" (OOB) prediction score:
         print("R2:", r2)
-        if self.model_type=='RandomForestRegressor' or self.model_type=='RandomForestClassifier':
+        if self.model_type == 'RandomForestRegressor' or self.model_type == 'RandomForestClassifier':
             oob_score = self.model.oob_score_ * 100
             print('OOB prediction of accuracy is: {oob}%\n'.format(oob=oob_score))
         else:
-            oob_score = 0 
-            
+            oob_score = 0
 
-        plt.figure(figsize=(5,5))
+        plt.figure(figsize=(5, 5))
         plt.plot(list(range(0, int(y_data.max()))), ls='dashed', alpha=0.3)
         plt.scatter(y_data, y_pred_test, color='black')
         plt.title("Scatter plot test vs predicted values")
@@ -414,35 +419,35 @@ class ModelBuilder():
 
         if feature_importance == True:
             feature_imp = pd.DataFrame({'feature_name': self.feature_names,
-                                        'importance': self.model.feature_importances_}).sort_values('importance', ascending=False)
+                                        'importance': self.model.feature_importances_}).sort_values('importance',
+                                                                                                    ascending=False)
             if save_figures:
                 feature_imp.to_csv(f'features_importances_{saving_base_output_name}.csv')
-            fig, ax = plt.subplots(figsize=(5,5))
+            fig, ax = plt.subplots(figsize=(5, 5))
             sns.barplot(x=feature_imp.importance, y=feature_imp.feature_name, ax=ax)
             plt.xlabel('Feature Importance Score')
             plt.ylabel('Features')
             plt.title("Visualizing Important Features", pad=15, size=14)
             if save_figures:
                 plt.savefig(f'features_importance_{saving_base_output_name}.png')
-        else: 
-            feature_imp = 0 
-            
-        if self.model_type=='RandomForestClassifier':
+        else:
+            feature_imp = 0
+
+        if self.model_type == 'RandomForestClassifier':
             y_pred_test_proba = self.model.predict_proba(X_data)[:, 1]
             r2 = metrics.r2_score(y_data, y_pred_test_proba)
             print("R2 with predictions probabilities:", r2)
-            
+
             if self.y_test is not None:
                 print('ROC-AUC score of the model:   {}'.format(roc_auc_score(y_data, y_pred_test_proba)))
             print('Accuracy of the model: {}\n'.format(accuracy_score(y_data, y_pred_test)))
             print('Classification report: \n{}\n'.format(classification_report(y_data, y_pred_test)))
             print('Confusion matrix: \n{}\n'.format(confusion_matrix(y_data, y_pred_test)))
-        
+
         return y_pred_test, mae, mse, rmse, oob_score, r2, feature_imp
 
-
     def inference(self, mask_band, tiles_folder_name, tiles_in_GCP,
-                 RF_output_folder_temp='RF_outputs_temp', path_to_tiles_local=''):
+                  output_folder_temp='outputs_temp', path_to_tiles_local=''):
         """
             Run inference on tiles using trained model and merge the results.
 
@@ -451,13 +456,13 @@ class ModelBuilder():
         - mask_band: (string) Name of band to use to remove "bleeding" from predictions
         - tiles_folder_name: (string) name of inference tiles folder
         - tiles_in_GCP: (boolean) If running with local tiles: tiles_in_GCP = False
-        - RF_output_folder_temp: (string) path to output folder where the predictions will be saved
+        - output_folder_temp: (string) path to output folder where the predictions will be saved
         - path_to_tiles_local: Local path to tiles if tiles_in_GCP = True
         -------
 
         """
-        if not os.path.exists(RF_output_folder_temp):
-            os.makedirs(RF_output_folder_temp)
+        if not os.path.exists(output_folder_temp):
+            os.makedirs(output_folder_temp)
 
         gcp_folder_path_inference_tiles = self.gcp_folder_name + '/' + tiles_folder_name
         # Find names of the predictors tiles in the GCP bucket and store them in list predictors_tiffiles
@@ -488,22 +493,22 @@ class ModelBuilder():
             for b in range(len(self.feature_names)):
                 corresponding_raster_band_index = bands.index(self.feature_names[b])
                 tile[:, :, b] = img_ds.GetRasterBand(corresponding_raster_band_index + 1).ReadAsArray()
-            print(f"tile shape: {tile.shape}")
+            # print(f"tile shape: {tile.shape}")
 
             # Take our full image and reshape into long 2d array (nrow * ncol, nband) for classification
             new_shape = (tile.shape[0] * tile.shape[1], tile.shape[2])
             tile_as_array = tile[:, :, :np.int(tile.shape[2])].reshape(new_shape)
-            print('Reshaped from {o} to {n}'.format(o=tile.shape, n=tile_as_array.shape))
+            # print('Reshaped from {o} to {n}'.format(o=tile.shape, n=tile_as_array.shape))
             tile_as_array = np.nan_to_num(tile_as_array)
-            print(tile_as_array.shape)
+            # print(tile_as_array.shape)
 
             # Predict for each pixel
             class_prediction = self.run_inference_on_tile(tile=tile, tile_as_array=tile_as_array)
 
-            # Generate mask from first band of our predictors
+            # Generate mask from selected band of predictors
             mask = np.copy(tile[:, :, self.feature_names.index(mask_band)]).astype(
                 np.uint8)  # using the mask_branch layer here to have positive values
-            print(np.unique(mask))
+            # print(np.unique(mask))
             mask[mask > 0] = 1  # all actual pixels have a value of 1.0
 
             # Mask predictions raster
@@ -511,13 +516,13 @@ class ModelBuilder():
             class_prediction_ = class_prediction * mask
 
             # Save predictions raster
-            classification_image = f"{RF_output_folder_temp}/RF_output_{str(datetime.datetime.now()).split('.')[0].replace(' ', '-').replace(':', '_')}_{i}.tif"
+            classification_image = f"{output_folder_temp}/output_{str(datetime.datetime.now()).split('.')[0].replace(' ', '-').replace(':', '_')}_{i}.tif"
             class_prediction_.astype(np.float16)
-            print(class_prediction_.shape)
+            # print(class_prediction_.shape)
             cols = tile.shape[1]
             rows = tile.shape[0]
             driver = gdal.GetDriverByName("GTiff")
-            outdata = driver.Create(classification_image, cols, rows, 1, gdal.GDT_Float32) # gdal.GDT_UInt16
+            outdata = driver.Create(classification_image, cols, rows, 1, gdal.GDT_Float32)  # gdal.GDT_UInt16
             outdata.SetGeoTransform(img_ds.GetGeoTransform())  ##sets same geotransform as input
             outdata.SetProjection(img_ds.GetProjection())  ##sets same projection as input
             outdata.GetRasterBand(1).WriteArray(class_prediction_)
@@ -529,51 +534,33 @@ class ModelBuilder():
             print('Image saved to: {}\n\n\n'.format(classification_image))
 
             i = i + 1
-            if tiles_in_GCP:
-                # Upload to bucket
-                blob_path = upload_to_bucket(gcp_bucket=self.gcp_bucket,
-                                             folder_name=self.gcp_folder_name + '/' + RF_output_folder_name,
-                                             file_name=classification_image.split('/')[-1],
-                                             file_local_path=classification_image)
-                print(f"Image uploaded to GCP bucket: {blob_path}")
-                # Delete image locally
-                os.remove(classification_image)
+
         print(f"Done: {i} tiles predicted")
 
         ################## Merge all predictions raster tiles ##################
-        output_merged_tif = RF_output_folder_temp + '/merged.tif'
+        output_merged_tif = 'final_merged_predictions_result.tif'
 
-        # Find names of the predictions raster tiles in the GCP bucket and store them in list paths_pred_rasters
-        if tiles_in_GCP:
-            paths_pred_rasters = glob_blob_in_GCP(gcp_bucket=self.gcp_bucket,
-                                                  gcp_folder_name=self.gcp_folder_name + '/' + RF_output_folder_name,
-                                                  extension='.tif')
-        else:
-            paths_pred_rasters = glob.glob(RF_output_folder_temp + '/*.tif')
+        # Find names of the predictions raster tiles
+        paths_pred_rasters = glob.glob(output_folder_temp + '/*.tif')
 
         paths_pred_rasters.sort()
         print(f'There are {len(paths_pred_rasters)} prediction rasters to be merged.')
 
-        import sys
- 
-        # setting path
-        print(f'ROOT_DIR: {ROOT_DIR}')
-        sys.path.append(ROOT_DIR)
-        command_list = ['python3', f'{ROOT_DIR}/gdal_merge.py', "-ot", "Float32","-a_nodata", "0", "-n", "0", "-co", "COMPRESS=DEFLATE",f"-o", f"{output_merged_tif}"]
-        command_list.extend(paths_pred_rasters)
-        subprocess.run(command_list)        
+        # Changed gdal_merge.py script to be a callable function instead of calling the script 
+        merge(names=paths_pred_rasters, out_file=output_merged_tif, format = 'GTiff', verbose=0, nodata=0, 
+              a_nodata=0, create_options=['COMPRESS=DEFLATE'], band_type="Float32")
 
         print('Done. Upload final merge tif to GCP bucket')
         # upload final merge tif to GCP bucket
         blob_path = upload_to_bucket(gcp_bucket=self.gcp_bucket,
-                                     folder_name=self.gcp_folder_name + '/' + RF_output_folder_temp,
-                                     file_name=output_merged_tif.split('/')[-1],
+                                     folder_name=self.gcp_folder_name + '/' + output_folder_temp,
+                                     file_name=output_merged_tif,
+                                     # file_name=output_merged_tif.split('/')[-1],
                                      file_local_path=output_merged_tif)
 
         print(f'Done! {i} prediction rasters were merged to {blob_path}')
 
         if tiles_in_GCP:
             # Remove temp directory
-            shutil.rmtree(RF_output_folder_temp)
-
+            shutil.rmtree(output_folder_temp)
 
