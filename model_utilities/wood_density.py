@@ -39,31 +39,27 @@ def getWDDBRegion(lat, lng):
     country = location['name'][0]
     continent = location['continent'][0]
 
-    # Flag for tropics
-    isTropical = abs(lat) < 23.5
-    
-    # There is very little data outside of the wet tropics.
-    # Use Europe if in northern Eurasia
-    if continent == 'Asia':
-        if lat > 30:
-            continent = 'Europe'
-        else:
-            continent = 'South-East Asia'
-    
-    # Construct Base Case
-    if isTropical:
-        region = continent + ' (tropical)'
-    else:
-        region = continent
-    
-    # Specific Cases
-    if continent == 'North America' and isTropical:
-        region = 'Central America (tropical)'
+    if country in ('China', 'India', 'Madagascar', 'Mexico'):
+        region = country
     elif country in ('Australia', 'Papua New Guinea') and isTropical:
         region = 'Australia/PNG (tropical)'
-    elif country in ('China', 'India', 'Madagascar', 'Mexico'):
-        region = country
-    
+    else:
+        # Continent-Based Split on Tropical / Not Tropical
+        region = continent
+        if abs(lat) < 23.5:
+            region += ' (tropical)'
+        
+        # Special renaming cases
+        if region == 'North America (tropical)':
+            region = 'Central America (tropical)'
+        elif region == 'Asia (tropical)':
+            region = 'South-East Asia (tropical)'
+        elif region == 'Asia':
+            if lat > 30:
+                region = 'China'
+            else:
+                region = 'South-East Asia'
+        
     return region
 
 
