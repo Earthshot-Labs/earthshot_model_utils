@@ -137,7 +137,7 @@ def chave_allometry_height(WD, DBH, H):
     ------
     AGB for individual tree in kg
     """
-    return WD * np.exp(-2.977 + np.log(WD * DBH ** 2 * H))
+    return 0.0673 * (WD * DBH ** 2 * H)**(0.976)
 
 
 # chave allometry if you don't have height data
